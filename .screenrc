@@ -5,3 +5,5 @@ chdir $ROOT
 screen -t rstudio
 screen -t man
 screen -t root
+chdir $ROOT/testdata/genomes
+screen -t testdata
