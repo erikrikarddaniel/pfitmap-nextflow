@@ -21,19 +21,18 @@ process singleFaa {
 }
 
 process hmmsearch {
-  publishDir "/home/ghada/dev/pfitmap_nextflow/testdata", mode: 'copy'
+  publishDir "testdata", mode: 'copy'
 
   input:
   file genomes from all_genomes_ch
   file hmm     from hmm_files
   
   output:
-  file "${hmm_aln.baseName}.hmm" into hmm_profiles_ch
   file "*.tblout" into tblout_ch
   file "*.domtblout" into domtblout_ch
 
   shell:
   """
-  hmmsearch --tblout "${hmm.basename}.tblout" --domtblout "${hmm.basename}.domtblout" $hmm $genomes
+  hmmsearch --tblout "${hmm.baseName}.tblout" --domtblout "${hmm.baseName}.domtblout" $hmm $genomes
   """
 }
