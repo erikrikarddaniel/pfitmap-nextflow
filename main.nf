@@ -25,7 +25,7 @@ process hmmsearch {
 
   input:
   file genomes from all_genomes_ch
-  file hmm from hmm_files
+  file hmm     from hmm_files
   
   output:
   file "${hmm_aln.baseName}.hmm" into hmm_profiles_ch
