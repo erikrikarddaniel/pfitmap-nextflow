@@ -1,0 +1,20 @@
+#!/usr/bin/env nextflow
+
+params.input= "/home/ghada/dev/pfitmap-nextflow/testdata/genomes/*.faa.gz"
+
+genomes = Channel.fromPath(params.input)
+         .collect()
+      
+process singleFaa {
+
+  input: 
+  file 'fastas' from genomes
+
+  output:
+  file 'all_genomes.faa' into hmmSearch_ch
+
+  shell:
+  """
+  zcat $fastas > all_genomes.faa
+  """
+}
