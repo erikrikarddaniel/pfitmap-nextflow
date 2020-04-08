@@ -1,19 +1,19 @@
 #!/usr/bin/env nextflow
 
-params.input= "testdata/genomes/*.faa.gz"
+// This should be moved to a config file for tests
+params.genomes = "testdata/genomes/*.faa.gz"
 
-genomes = Channel.fromPath(params.input)
+genomes = Channel.fromPath(params.genomes)
       
 process singleFaa {
-
   input: 
-  file(fastas) from genomes.collect()
+  file("*.faa.gz") from genomes.collect()
 
   output:
-  file 'all_genomes.faa' into hmmSearch_ch
+  file 'all_genomes.faa' into all_genomes_ch
 
   shell:
   """
-  zcat $fastas > all_genomes.faa
+  zcat *.faa.gz > all_genomes.faa
   """
 }
