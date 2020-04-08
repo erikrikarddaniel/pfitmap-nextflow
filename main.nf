@@ -2,8 +2,10 @@
 
 // This should be moved to a config file for tests
 params.genomes = "testdata/genomes/*.faa.gz"
+params.hmms    = "testdata/profiles/*.hmm"
 
-genomes = Channel.fromPath(params.genomes)
+genomes   = Channel.fromPath(params.genomes)
+hmm_files = Channel.fromPath(params.hmms)
       
 process singleFaa {
   input: 
@@ -18,14 +20,12 @@ process singleFaa {
   """
 }
 
-}
-
 process hmmsearch {
   publishDir "/home/ghada/dev/pfitmap_nextflow/testdata", mode: 'copy'
 
   input:
-  file "HMMER_DB_FAA" from hmmSearch_ch
-  file "hmm_aln" from Channel.fromPath("/home/ghada/dev/pfitmap-nextflow/testdata/profiles/*alnfaa")
+  file genomes from all_genomes_ch
+  file hmm from hmm_files
   
   output:
   file "${hmm_aln.baseName}.hmm" into hmm_profiles_ch
@@ -34,7 +34,6 @@ process hmmsearch {
 
   shell:
   """
-  hmmbuild $hmm_aln $hmm_profiles_ch
-  hmmsearch --tblout "${hmm_profiles.basename}.tblout" --domtblout "${hmm_profiles.basename}.domtblout" $hmm_profiles_ch $HMMER_DB_FAA
+  hmmsearch --tblout "${hmm.basename}.tblout" --domtblout "${hmm.basename}.domtblout" $hmm $genomes
   """
 }
