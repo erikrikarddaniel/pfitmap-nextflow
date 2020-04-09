@@ -1,0 +1,9 @@
+name: pfitmap-nextflow-env
+channels:
+  - anaconda
+  - conda-forge
+  - defaults
+  - bioconda
+  - biocore
+dependencies:
+  - hmmer=3.3
