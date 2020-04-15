@@ -2,6 +2,9 @@
 
 genomes   = Channel.fromPath(params.genomes)
 hmm_files = Channel.fromPath(params.hmms)
+profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy)
+DBSOURCE = Channel.value(params.DBSOURCE)
+hmm_mincov = Channel.value(params.hmm_mincov)
 results = params.results
      
 process singleFaa {
@@ -49,3 +52,22 @@ process getMetadata {
   """
 }
 
+process pfClassify {
+ 
+  input:
+  val hmm_mincov from hmm_mincov
+  val DBSOURCE form DBSOURCE
+  file "hmm_profile_hierarchy.tsv" from profiles_hierarchy
+  file "gtdb_metadata.tsv" from gtdbmetadata_ch
+  file ("*.tblout") from tblout_ch
+  file ("*.domtblout") from domtblout_ch
+  
+  output:
+  file 'gtdb.tsv.gz' into gtdb.tsv_ch
+  file 'gtdb.pf.db' into gtdb.pf.db_ch
+
+  shell:
+  """
+  pf-classify.r --verbose --hmm_mincov=${hmm_mincov} --dbsource=${DBSOURCE} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --sqlitedb=gtdb.pf.db  *.tblout *.domtblout
+  """
+}
