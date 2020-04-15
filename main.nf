@@ -1,12 +1,50 @@
-#!/usr/bin/env nextflow
+/**
+ * main.nf: Nextflow workflow for GTDB
+ *
+ * The GTDB genomes are downloaded and annotated
+ * The workflow starts from a set of annotated genomes in the format of faa.gz files
+ * Requirements: directory with all hmm profiles to be run 
+ *
+ *   Concatenate all faa.gz files into a single onee
+ *   Performs an hmm_search of all hmm profiles on all the genomes
+ *   Downloads the metadata files for Archaea and Bacterial genomes from gtdb latest version repository and concatenates them into a single metadata file
+ *   Classify the found 
+ *
+ * daniel.lundin@lnu.se
+ */
 
-genomes   = Channel.fromPath(params.genomes)
+#!/usr/bin/env nextflow
+params.help = false
+genomes   = Channel.fromPath(params.inputgenomes)
 hmm_files = Channel.fromPath(params.hmms)
 profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy)
 DBSOURCE = Channel.value(params.DBSOURCE)
 hmm_mincov = Channel.value(params.hmm_mincov)
-results = params.results
+results = params.outputdir
      
+def helpMessage() {
+  log.info """
+
+  Usage:
+
+  The typical command for running the pipeline is as follows:
+
+  nextflow run main.nf --inputgenomes path/to/genomes --outputdir path/to/results --hmm_mincov value --DBSOURCE NCBI:NR:*date*
+
+  Mandatory arguments:
+  --inputgenomes path/to/genomes		Path to annotated genomes in the format faa.gz 
+  --outputdir path/to/results 			Path to the results directory
+  --hmm_mincov value 				Set a value for the threshold of coverage hmm_profile/querry (default = 0.9)
+  --DBSOURCE GTDB:release			Set the database source in the format GTDB:release, where 'release' mention which GTDB release was used
+  """.stripIndent()
+}
+
+// Show help message
+if (params.help) {
+  helpMessage()
+  exit 0
+}
+
 process singleFaa {
   input: 
   file("*.faa.gz") from genomes.collect()
@@ -16,7 +54,7 @@ process singleFaa {
 
   shell:
   """
-  zcat *.faa.gz > all_genomes.faa
+  find . -name “*.faa.gz” | xargs gunzip -c | gzip -c > all_genomes.faa.gz
   
   """
 }
