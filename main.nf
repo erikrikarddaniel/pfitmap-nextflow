@@ -1,3 +1,5 @@
+#!/usr/bin/env nextflow
+
 /**
  * main.nf: Nextflow workflow for GTDB
  *
@@ -5,20 +7,19 @@
  * The workflow starts from a set of annotated genomes in the format of faa.gz files
  * Requirements: directory with all hmm profiles to be run 
  *
- *   Concatenate all faa.gz files into a single onee
+ *   Concatenate all faa.gz files into a single one
  *   Performs an hmm_search of all hmm profiles on all the genomes
  *   Downloads the metadata files for Archaea and Bacterial genomes from gtdb latest version repository and concatenates them into a single metadata file
  *   Classify the found 
  *
- * daniel.lundin@lnu.se
+ * ghada.nouraia@dbb.su.se daniel.lundin@dbb.su.se
  */
 
-#!/usr/bin/env nextflow
 params.help = false
 genomes   = Channel.fromPath(params.inputgenomes)
 hmm_files = Channel.fromPath(params.hmms)
 profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy)
-DBSOURCE = Channel.value(params.DBSOURCE)
+dbsource = Channel.value(params.dbsource)
 hmm_mincov = Channel.value(params.hmm_mincov)
 results = params.outputdir
      
@@ -29,13 +30,13 @@ def helpMessage() {
 
   The typical command for running the pipeline is as follows:
 
-  nextflow run main.nf --inputgenomes path/to/genomes --outputdir path/to/results --hmm_mincov value --DBSOURCE NCBI:NR:*date*
+  nextflow run main.nf --inputgenomes path/to/genomes --outputdir path/to/results --hmm_mincov value --dbsource NCBI:NR:*date*
 
   Mandatory arguments:
   --inputgenomes path/to/genomes		Path to annotated genomes in the format faa.gz 
   --outputdir path/to/results 			Path to the results directory
   --hmm_mincov value 				Set a value for the threshold of coverage hmm_profile/querry (default = 0.9)
-  --DBSOURCE GTDB:release			Set the database source in the format GTDB:release, where 'release' mention which GTDB release was used
+  --dbsource GTDB:release			Set the database source in the format GTDB:release, where 'release' mention which GTDB release was used
   """.stripIndent()
 }
 
@@ -94,7 +95,7 @@ process pfClassify {
  
   input:
   val hmm_mincov from hmm_mincov
-  val DBSOURCE form DBSOURCE
+  val dbsource form dbsource
   file "hmm_profile_hierarchy.tsv" from profiles_hierarchy
   file "gtdb_metadata.tsv" from gtdbmetadata_ch
   file ("*.tblout") from tblout_ch
@@ -106,6 +107,6 @@ process pfClassify {
 
   shell:
   """
-  pf-classify.r --verbose --hmm_mincov=${hmm_mincov} --dbsource=${DBSOURCE} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --sqlitedb=gtdb.pf.db  *.tblout *.domtblout
+  pf-classify.r --verbose --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --sqlitedb=gtdb.pf.db  *.tblout *.domtblout
   """
 }
