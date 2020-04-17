@@ -30,3 +30,4 @@ _cache
 .nextflow*
 work
 *tblout
+*.simg
