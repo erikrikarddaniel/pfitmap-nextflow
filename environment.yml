@@ -5,5 +5,7 @@ channels:
   - defaults
   - bioconda
   - biocore
+  - matricaria
 dependencies:
   - hmmer=3.3
+  - pfitmap-db
