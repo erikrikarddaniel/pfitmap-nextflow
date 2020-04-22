@@ -21,7 +21,8 @@ hmm_files = Channel.fromPath(params.hmms)
 profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy)
 dbsource = Channel.value(params.dbsource)
 hmm_mincov = Channel.value(params.hmm_mincov)
-gtdb_metadata = Channel.fromPath(params.gtdb_metadata)
+gtdb_arc_metadata = Channel.fromPath(params.gtdb_arc_metadata)
+gtdb_bac_metadata = Channel.fromPath(params.gtdb_bac_metadata)
 results = params.outputdir
      
 def helpMessage() {
@@ -77,6 +78,23 @@ process hmmSearch {
   """
 }
 
+process getMetadata {
+  publishDir results, mode: 'copy'
+
+  input:
+  file arc_metadata from gtdb_arc_metadata
+  file bac_metadata from gtdb_bac_metadata
+
+  output:
+  file 'gtdb_metadata.tsv' into gtdbmetadata_ch
+
+  shell:
+  """
+  cat $arc_metadata > gtdb_metadata.tsv
+  cat $bac_metadata |grep -v ^accession >> gtdb_metadata.tsv
+  """
+}
+
 process pfClassify {
   publishDir results, mode: 'copy'
 
@@ -84,7 +102,7 @@ process pfClassify {
   val hmm_mincov from hmm_mincov
   val dbsource from dbsource
   file "hmm_profile_hierarchy.tsv" from profiles_hierarchy
-  file "gtdb_metadata_subset.tsv" from gtdb_metadata
+  file "gtdb_metadata.tsv" from gtdbmetadata_ch
   file tblout from tblout_ch
   file domtblout from domtblout_ch
 
@@ -94,7 +112,7 @@ process pfClassify {
 
   shell:
   """
-  pf-classify.r --verbose --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata_subset.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --sqlitedb=gtdb.pf.db  $tblout $domtblout
+  pf-classify.r --verbose --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --sqlitedb=gtdb.pf.db  $tblout $domtblout
   """
 }
 
