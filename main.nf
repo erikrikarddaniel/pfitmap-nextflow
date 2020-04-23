@@ -57,7 +57,10 @@ process singleFaa {
 
   shell:
   """
-  find . -name '*.faa.gz' | xargs gunzip -c >> all_genomes.faa
+  for f in \$(find . -name '*.faa.gz'|xargs readlink); do
+    a=\$(basename \$f | sed 's/\\..*//');
+    gunzip -c \$f | sed "/^>/s/\$/ [\$a]/";
+  done > all_genomes.faa
   """
 }
 
