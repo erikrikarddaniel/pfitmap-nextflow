@@ -21,6 +21,8 @@ hmm_files = Channel.fromPath(params.hmms)
 profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy)
 dbsource = Channel.value(params.dbsource)
 hmm_mincov = Channel.value(params.hmm_mincov)
+gtdb_arc_metadata = Channel.fromPath(params.gtdb_arc_metadata)
+gtdb_bac_metadata = Channel.fromPath(params.gtdb_bac_metadata)
 results = params.outputdir
      
 def helpMessage() {
@@ -55,8 +57,7 @@ process singleFaa {
 
   shell:
   """
-  find . -name “*.faa.gz” | xargs gunzip -c | gzip -c > all_genomes.faa.gz
-  
+  find . -name '*.faa.gz' | xargs gunzip -c >> all_genomes.faa
   """
 }
 
@@ -68,8 +69,8 @@ process hmmSearch {
   file hmm     from hmm_files
   
   output:
-  file "*.tblout" into tblout_ch
-  file "*.domtblout" into domtblout_ch
+  file ("*.tblout") into tblout_ch
+  file ("*.domtblout") into domtblout_ch
 
   shell:
   """
@@ -78,35 +79,40 @@ process hmmSearch {
 }
 
 process getMetadata {
-  
+  publishDir results, mode: 'copy'
+
+  input:
+  file arc_metadata from gtdb_arc_metadata
+  file bac_metadata from gtdb_bac_metadata
+
   output:
   file 'gtdb_metadata.tsv' into gtdbmetadata_ch
 
   shell:
   """
-  wget https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/ar122_metadata.tsv
-  wget https://data.ace.uq.edu.au/public/gtdb/data/releases/latest/bac120_metadata.tsv
-  cat ar122_metadata.tsv > gtdb_metadata.tsv
-  cat bac120_metadata.tsv |grep -v ^accession >> gtdb_metadata.tsv
+  cat $arc_metadata > gtdb_metadata.tsv
+  cat $bac_metadata |grep -v ^accession >> gtdb_metadata.tsv
   """
 }
 
 process pfClassify {
- 
+  publishDir results, mode: 'copy'
+
   input:
   val hmm_mincov from hmm_mincov
-  val dbsource form dbsource
+  val dbsource from dbsource
   file "hmm_profile_hierarchy.tsv" from profiles_hierarchy
   file "gtdb_metadata.tsv" from gtdbmetadata_ch
-  file ("*.tblout") from tblout_ch
-  file ("*.domtblout") from domtblout_ch
-  
+  file tblout from tblout_ch
+  file domtblout from domtblout_ch
+
   output:
-  file 'gtdb.tsv.gz' into gtdb.tsv_ch
-  file 'gtdb.pf.db' into gtdb.pf.db_ch
+  file "gtdb.pf.db" into gtdb_pf_db_ch
+  file "gtdb.tsv.gz" into gtdb_tsv_ch
 
   shell:
   """
-  pf-classify.r --verbose --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --sqlitedb=gtdb.pf.db  *.tblout *.domtblout
+  pf-classify.r --verbose --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --sqlitedb=gtdb.pf.db  $tblout $domtblout
   """
 }
+
