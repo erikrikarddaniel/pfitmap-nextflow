@@ -112,10 +112,11 @@ process pfClassify {
   output:
   file "gtdb.pf.db" into gtdb_pf_db_ch
   file "gtdb.tsv.gz" into gtdb_tsv_ch
+  file "gtdb.pf-classify.warnings.txt" into gtdb_classify_warnings_ch
 
   shell:
   """
-  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --sqlitedb=gtdb.pf.db  $tblout $domtblout
+  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --sqlitedb=gtdb.pf.db  $tblout $domtblout > gtdb.pf-classify.warnings.txt 2>&1
   """
 }
 
