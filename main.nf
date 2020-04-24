@@ -57,7 +57,10 @@ process singleFaa {
 
   shell:
   """
-  find . -name '*.faa.gz' | xargs gunzip -c >> all_genomes.faa
+  for f in \$(find . -name '*.faa.gz'|xargs readlink); do
+    a=\$(basename \$f | sed 's/\\..*//');
+    gunzip -c \$f | sed "/^>/s/\$/ [\$a]/";
+  done > all_genomes.faa
   """
 }
 
@@ -112,7 +115,7 @@ process pfClassify {
 
   shell:
   """
-  pf-classify.r --verbose --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --sqlitedb=gtdb.pf.db  $tblout $domtblout
+  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --sqlitedb=gtdb.pf.db  $tblout $domtblout
   """
 }
 
