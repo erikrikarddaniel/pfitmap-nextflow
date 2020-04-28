@@ -119,3 +119,18 @@ process pfClassify {
   """
 }
 
+process pfTables {
+  publishDir results, mode: 'copy'
+
+  input:
+  file gtdb.sequences.feather from gtdb.sequences_ch 
+  file gtdb.pf.db from gtdb_pf_db_ch
+  
+  output:
+  file "pfitmap-tables.out" into gtdb_pf_db_ch
+  
+  shell:
+  """ 
+  pf-db2feather.r --verbose --prefix=gtdb $gtdb.pf.db 2>&1 | tee pfitmap-tables.out
+  """
+}
