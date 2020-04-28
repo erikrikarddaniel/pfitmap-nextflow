@@ -123,7 +123,7 @@ process pfTables {
   publishDir results, mode: 'copy'
 
   input:
-  file gtdb.sequences.feather from gtdb.sequences_ch 
+  file gtdb.sequences.fasta from gtdb.sequences_ch
   file gtdb.pf.db from gtdb_pf_db_ch
   
   output:
