@@ -15,15 +15,14 @@
  * ghada.nouraia@dbb.su.se daniel.lundin@dbb.su.se
  */
 
-params.help = false
-genomes   = Channel.fromPath(params.inputgenomes)
-hmm_files = Channel.fromPath(params.hmms)
-profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy)
-dbsource = Channel.value(params.dbsource)
-hmm_mincov = Channel.value(params.hmm_mincov)
-gtdb_arc_metadata = Channel.fromPath(params.gtdb_arc_metadata)
-gtdb_bac_metadata = Channel.fromPath(params.gtdb_bac_metadata)
-results = params.outputdir
+// Parameters
+params.help                     = false
+params.inputgenomes             = ''
+params.profiles_hierarchy       = ''
+params.dbsource                 = ''
+params.hmm_mincov               = 0.9
+params.gtdb_arc_metadata        = ''
+params.gtdb_bac_metadata        = ''
      
 def helpMessage() {
   log.info """
@@ -47,6 +46,16 @@ if (params.help) {
   helpMessage()
   exit 0
 }
+
+// Create channels to start processing
+genomes                 = Channel.fromPath(params.inputgenomes)
+hmm_files               = Channel.fromPath(params.hmms)
+profiles_hierarchy      = Channel.fromPath(params.profiles_hierarchy)
+dbsource                = Channel.value(params.dbsource)
+hmm_mincov              = Channel.value(params.hmm_mincov)
+gtdb_arc_metadata       = Channel.fromPath(params.gtdb_arc_metadata)
+gtdb_bac_metadata       = Channel.fromPath(params.gtdb_bac_metadata)
+results                 = params.outputdir
 
 process singleFaa {
   input: 
