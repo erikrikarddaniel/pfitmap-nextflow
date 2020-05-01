@@ -48,17 +48,12 @@ if (params.help) {
 }
 
 // Create channels to start processing
-System.err.println(sprintf("genomes: %s", params.inputgenomes))
 genomes                 = Channel.fromPath(params.inputgenomes)
-System.err.println("hmms")
 hmm_files               = Channel.fromPath(params.hmms)
-System.err.println("profiles")
 profiles_hierarchy      = Channel.fromPath(params.profiles_hierarchy)
 dbsource                = Channel.value(params.dbsource)
 hmm_mincov              = Channel.value(params.hmm_mincov)
-System.err.println("arc")
 gtdb_arc_metadata       = Channel.fromPath(params.gtdb_arc_metadata)
-System.err.println("bac")
 gtdb_bac_metadata       = Channel.fromPath(params.gtdb_bac_metadata)
 results                 = params.outputdir
 
@@ -135,18 +130,3 @@ process pfClassify {
   pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --seqfaa=${genomes} --sqlitedb=gtdb.pf.db  $tblout $domtblout > gtdb.pf-classify.warnings.txt 2>&1
   """
 }
-
-process formatSequences {
-  publishDir results, mode: 'copy'
-  input:
-  file "all_genomes.faa" from all_genomes_ch
-
-  output:
-  file "all_genomes.c.faa" into formatted_genomes_ch
-  
-  shell:
-  """
-  cat "all_genomes.faa" | awk '/^>/ {printf("\\n%s\\n",\$\$0); next;} {printf("%s",\$\$0);} END {printf("\\n");}' | sed '/^\$\$/d' | sed '/^>/s/[ \\t]\\+/_/g' | sed '/^>/s/[-(),:;+|]//g' | sed '/^>/!s/ //g' > all_genomes.c.faa
-  """
-}
-
