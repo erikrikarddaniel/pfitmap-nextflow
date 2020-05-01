@@ -136,3 +136,17 @@ process pfClassify {
   """
 }
 
+process formatSequences {
+  publishDir results, mode: 'copy'
+  input:
+  file "all_genomes.faa" from all_genomes_ch
+
+  output:
+  file "all_genomes.c.faa" into formatted_genomes_ch
+  
+  shell:
+  """
+  cat "all_genomes.faa" | awk '/^>/ {printf("\\n%s\\n",\$\$0); next;} {printf("%s",\$\$0);} END {printf("\\n");}' | sed '/^\$\$/d' | sed '/^>/s/[ \\t]\\+/_/g' | sed '/^>/s/[-(),:;+|]//g' | sed '/^>/!s/ //g' > all_genomes.c.faa
+  """
+}
+
