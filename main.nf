@@ -15,14 +15,14 @@
  * ghada.nouraia@dbb.su.se daniel.lundin@dbb.su.se
  */
 
-params.help = false
-genomes   = Channel.fromPath(params.inputgenomes)
-hmm_files = Channel.fromPath(params.hmms)
-profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy)
+params.help = true
+genomes   = Channel.fromPath(params.inputgenomes, checkIfExists : true)
+hmm_files = Channel.fromPath(params.hmms, checkIfExists : true)
+profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy, checkIfExists : true)
 dbsource = Channel.value(params.dbsource)
 hmm_mincov = Channel.value(params.hmm_mincov)
-gtdb_arc_metadata = Channel.fromPath(params.gtdb_arc_metadata)
-gtdb_bac_metadata = Channel.fromPath(params.gtdb_bac_metadata)
+gtdb_arc_metadata = Channel.fromPath(params.gtdb_arc_metadata, checkIfExists : true)
+gtdb_bac_metadata = Channel.fromPath(params.gtdb_bac_metadata, checkIfExists : true)
 results = params.outputdir
      
 def helpMessage() {
@@ -32,13 +32,13 @@ def helpMessage() {
 
   The typical command for running the pipeline is as follows:
 
-  nextflow run main.nf --inputgenomes path/to/genomes --outputdir path/to/results --hmm_mincov value --dbsource NCBI:NR:*date*
+  nextflow run main.nf --inputgenomes path/to/genomes --outputdir path/to/results --hmm_mincov value --dbsource GTDB:release
 
   Mandatory arguments:
   --inputgenomes path/to/genomes		Path to annotated genomes in the format faa.gz 
-  --outputdir path/to/results 			Path to the results directory
-  --hmm_mincov value 				Set a value for the threshold of coverage hmm_profile/querry (default = 0.9)
-  --dbsource GTDB:release			Set the database source in the format GTDB:release, where 'release' mention which GTDB release was used
+  --outputdir path/to/results		Path to the results directory
+  --hmm_mincov value			Set a value for the threshold of coverage hmm_profile/querry (default = 0.9)
+  --dbsource GTDB:release		Set the database source in the format GTDB:release, where 'release' mentions which GTDB release was used
   """.stripIndent()
 }
 
@@ -46,6 +46,16 @@ def helpMessage() {
 if (params.help) {
   helpMessage()
   exit 0
+}
+
+process checkFiles {
+    validExitStatus 0,1
+
+     script:
+     """
+     echo Hello
+     exit 1
+     """
 }
 
 process singleFaa {
