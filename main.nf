@@ -17,13 +17,13 @@
 
 // Parameters
 params.help                     = false
-/*params.inputgenomes             = ''
+params.inputgenomes             = ''
 params.profiles_hierarchy       = ''
 params.dbsource                 = ''
 params.hmm_mincov               = 0.9
 params.gtdb_arc_metadata        = ''
 params.gtdb_bac_metadata        = ''
-*/
+
      
 def helpMessage() {
   log.info """
@@ -49,16 +49,6 @@ if (params.help) {
   exit 0
 }
 
-process checkFiles {
-    validExitStatus 0,1
-
-     script:
-     """
-     echo Hello
-     exit 1
-     """
-}
-
 // Create channels to start processing
 
 genomes   = Channel.fromPath(params.inputgenomes, checkIfExists : true)
@@ -69,6 +59,32 @@ hmm_mincov = Channel.value(params.hmm_mincov)
 gtdb_arc_metadata = Channel.fromPath(params.gtdb_arc_metadata, checkIfExists : true)
 gtdb_bac_metadata = Channel.fromPath(params.gtdb_bac_metadata, checkIfExists : true)
 results = params.outputdir
+
+//Return personnalized error when one of the files is missing
+
+workflow.onError {
+  
+  filename = workflow.errorReport
+  println ""
+  println "---------------- Error Message -----------------"
+  println " The file ${filename} is missing"  
+  println " Please specify" + filename
+  println "------------------------------------------------"
+  println ""
+}
+
+process checkdbsource {
+  input:
+  val dbsource from dbsource.ifEmpty { 'EMPTY' }
+  
+  when:
+  dbsource == 'EMPTY'
+
+  script:
+  """
+  println "Please define the GTDB release using the parameter --dbsource GTDB:release"
+  """
+}
 
 process singleFaa {
   input: 
@@ -104,7 +120,7 @@ process hmmSearch {
   """
 }
 
-process getMetadata {
+/*process getMetadata {
   publishDir results, mode: 'copy'
 
   input:
@@ -143,3 +159,4 @@ process pfClassify {
   pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --seqfaa=${genomes} --sqlitedb=gtdb.pf.db  $tblout $domtblout > gtdb.pf-classify.warnings.txt 2>&1
   """
 }
+*/
