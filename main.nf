@@ -15,15 +15,15 @@
  * ghada.nouraia@dbb.su.se daniel.lundin@dbb.su.se
  */
 
-params.help = true
-genomes   = Channel.fromPath(params.inputgenomes, checkIfExists : true)
-hmm_files = Channel.fromPath(params.hmms, checkIfExists : true)
-profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy, checkIfExists : true)
-dbsource = Channel.value(params.dbsource)
-hmm_mincov = Channel.value(params.hmm_mincov)
-gtdb_arc_metadata = Channel.fromPath(params.gtdb_arc_metadata, checkIfExists : true)
-gtdb_bac_metadata = Channel.fromPath(params.gtdb_bac_metadata, checkIfExists : true)
-results = params.outputdir
+// Parameters
+params.help                     = false
+/*params.inputgenomes             = ''
+params.profiles_hierarchy       = ''
+params.dbsource                 = ''
+params.hmm_mincov               = 0.9
+params.gtdb_arc_metadata        = ''
+params.gtdb_bac_metadata        = ''
+*/
      
 def helpMessage() {
   log.info """
@@ -39,6 +39,7 @@ def helpMessage() {
   --outputdir path/to/results		Path to the results directory
   --hmm_mincov value			Set a value for the threshold of coverage hmm_profile/querry (default = 0.9)
   --dbsource GTDB:release		Set the database source in the format GTDB:release, where 'release' mentions which GTDB release was used
+
   """.stripIndent()
 }
 
@@ -58,12 +59,24 @@ process checkFiles {
      """
 }
 
+// Create channels to start processing
+
+genomes   = Channel.fromPath(params.inputgenomes, checkIfExists : true)
+hmm_files = Channel.fromPath(params.hmms, checkIfExists : true)
+profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy, checkIfExists : true)
+dbsource = Channel.value(params.dbsource)
+hmm_mincov = Channel.value(params.hmm_mincov)
+gtdb_arc_metadata = Channel.fromPath(params.gtdb_arc_metadata, checkIfExists : true)
+gtdb_bac_metadata = Channel.fromPath(params.gtdb_bac_metadata, checkIfExists : true)
+results = params.outputdir
+
 process singleFaa {
   input: 
   file("*.faa.gz") from genomes.collect()
 
   output:
-  file 'all_genomes.faa' into all_genomes_ch
+  file 'all_genomes.faa' into all_genomes_hmmsearch_ch
+  file 'all_genomes.faa' into all_genomes_classify_ch
 
   shell:
   """
@@ -78,7 +91,7 @@ process hmmSearch {
   publishDir results, mode: 'copy'
 
   input:
-  file genome from all_genomes_ch
+  file genome from all_genomes_hmmsearch_ch
   file hmm     from hmm_files
   
   output:
@@ -118,6 +131,7 @@ process pfClassify {
   file "gtdb_metadata.tsv" from gtdbmetadata_ch
   file tblout from tblout_ch
   file domtblout from domtblout_ch
+  file genomes from all_genomes_classify_ch
 
   output:
   file "gtdb.pf.db" into gtdb_pf_db_ch
@@ -126,6 +140,6 @@ process pfClassify {
 
   shell:
   """
-  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --sqlitedb=gtdb.pf.db  $tblout $domtblout > gtdb.pf-classify.warnings.txt 2>&1
+  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --seqfaa=${genomes} --sqlitedb=gtdb.pf.db  $tblout $domtblout > gtdb.pf-classify.warnings.txt 2>&1
   """
 }
