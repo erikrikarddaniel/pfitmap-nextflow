@@ -1,1 +1,1 @@
-singularity build pfitmap-nextflow.simg docker-daemon://pfitmap-nextflow-image:latest
+singularity build --force pfitmap-nextflow.simg docker-daemon://pfitmap-nextflow-image:latest 
