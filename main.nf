@@ -27,7 +27,6 @@ params.gtdb_bac_metadata        = null
 params.max_cpus = 2
 params.max_time = "240.h"
 
-//assert dbsource ==~ /.+:.+:.+/ 
 if (! ( params.dbsource =~ /.+:.+:.+/ ) ) { error "Error in dbsource format\ndbsource should be in the format db:db:release\nSee more using --help"}
 
 if( !params.inputgenomes ) {
@@ -175,3 +174,17 @@ process pfClassify {
   """
 }
 
+process db2Feather {
+  publishDir results, mode: 'copy'
+
+  input:
+  file "gtdb.pf.db" from gtdb_pf_db_ch
+
+  output:
+  file "gtdb.pf-db2feather.warnings.txt" into gtdb_db2feather_warnings_ch
+
+  shell:
+  """
+  pf-db2feather.r --verbose --prefix=pfitmap gtdb.pf.db > gtdb.pf-db2feather.warnings.txt  2>&1
+  """
+}
