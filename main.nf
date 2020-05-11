@@ -27,6 +27,9 @@ params.gtdb_bac_metadata        = null
 params.max_cpus = 2
 params.max_time = "240.h"
 
+//assert dbsource ==~ /.+:.+:.+/ 
+if (! ( params.dbsource =~ /.+:.+:.+/ ) ) { error "Error in dbsource format\ndbsource should be in the format db:db:release\nSee more using --help"}
+
 if( !params.inputgenomes ) {
   error "Missing inputgenomes parameter\n[Parameter error] Please specify the parameter --inputgenomes\nSee more using --help" 
 }
@@ -54,11 +57,11 @@ def helpMessage() {
 
   Mandatory arguments:
   --inputgenomes path/to/genomes		Path to annotated genomes in the format faa.gz 
-  --gtdb_bac_metadata path/to/file		Path and name of tsv file including the metadata for GTDB bacterial genomes
-  --gtdb_arc_metadata path/to/file 		Path and name of tsv file including the metadata for GTDB archaeal genomes
+  --gtdb_bac_metadata path/to/file		Path and name of tsv file including the metadata for bacterial genomes
+  --gtdb_arc_metadata path/to/file 		Path and name of tsv file including the metadata for archaeal genomes
   --profiles_hierarchy	path/to/file		Path and name of tsv file including hmm profile names and information (See README file for more details)		
   --hmm_mincov value			Set a value for the threshold of coverage hmm_profile/querry (default = 0.9)
-  --dbsource GTDB:GTDB:release		Set the database source in the format GTDB:GTDB:release, where [release] mentions which GTDB release is used (default = GTDB:GTDB:latest)
+  --dbsource db:db:release		Set the database source in the format db:db:release, where [db] is the name of the database and [release] mentions the release number/name (default = GTDB:GTDB:latest)
   --outputdir path/to/results		Path to the results directory
 
   Non Mandatory parameters:
