@@ -17,13 +17,34 @@
 
 // Parameters
 params.help                     = false
-params.inputgenomes             = ''
-params.profiles_hierarchy       = ''
-params.dbsource                 = ''
+params.inputgenomes             = null
+params.profiles_hierarchy       = null
+params.dbsource                 = 'GTDB:GTDB:latest'
 params.hmm_mincov               = 0.9
-params.gtdb_arc_metadata        = ''
-params.gtdb_bac_metadata        = ''
-     
+params.gtdb_arc_metadata        = null
+params.gtdb_bac_metadata        = null
+
+params.max_cpus = 2
+params.max_time = "240.h"
+
+if (! ( params.dbsource =~ /.+:.+:.+/ ) ) { error "Error in dbsource format\ndbsource should be in the format db:db:release\nSee more using --help"}
+
+if( !params.inputgenomes ) {
+  error "Missing inputgenomes parameter\n[Parameter error] Please specify the parameter --inputgenomes\nSee more using --help" 
+}
+
+if( !params.profiles_hierarchy ) {
+  error "Missing profiles_hierarchy parameter\n[Parameter error] Please specify the parameter --profiles_hierarchy\nSee more using --help"
+}
+
+if( !params.gtdb_arc_metadata ) {
+  error "Missing gtdb_arc_metadata parameter\n[Parameter error] Please specify the parameter --gtdb_arc_metadata\nSee more using --help"
+}
+
+if( !params.gtdb_bac_metadata ) {
+  error "Missing gtdb_bac_metadata parameter\n[Parameter error] Please specify the parameter --gtdb_bac_metadata\nSee more using --help"
+}
+
 def helpMessage() {
   log.info """
 
@@ -31,13 +52,21 @@ def helpMessage() {
 
   The typical command for running the pipeline is as follows:
 
-  nextflow run main.nf --inputgenomes path/to/genomes --outputdir path/to/results --hmm_mincov value --dbsource NCBI:NR:*date*
+  nextflow run main.nf --inputgenomes path/to/genomes --outputdir path/to/results --hmm_mincov value --dbsource GTDB:GTDB:release
 
   Mandatory arguments:
   --inputgenomes path/to/genomes		Path to annotated genomes in the format faa.gz 
-  --outputdir path/to/results 			Path to the results directory
-  --hmm_mincov value 				Set a value for the threshold of coverage hmm_profile/query (default = 0.9)
-  --dbsource GTDB:release			Set the database source in the format GTDB:release, where 'release' mention which GTDB release was used
+  --gtdb_bac_metadata path/to/file		Path and name of tsv file including the metadata for bacterial genomes
+  --gtdb_arc_metadata path/to/file 		Path and name of tsv file including the metadata for archaeal genomes
+  --profiles_hierarchy	path/to/file		Path and name of tsv file including hmm profile names and information (See README file for more details)		
+  --hmm_mincov value			Set a value for the threshold of coverage hmm_profile/querry (default = 0.9)
+  --dbsource db:db:release		Set the database source in the format db:db:release, where [db] is the name of the database and [release] mentions the release number/name (default = GTDB:GTDB:latest)
+  --outputdir path/to/results		Path to the results directory
+
+  Non Mandatory parameters:
+  --max_cpus			Maximum number of CPU cores to be used (default = 2)
+  --max_time			Maximum time per process (default = 10 days)
+  
   """.stripIndent()
 }
 
@@ -48,14 +77,28 @@ if (params.help) {
 }
 
 // Create channels to start processing
-genomes                 = Channel.fromPath(params.inputgenomes)
-hmm_files               = Channel.fromPath(params.hmms)
-profiles_hierarchy      = Channel.fromPath(params.profiles_hierarchy)
-dbsource                = Channel.value(params.dbsource)
-hmm_mincov              = Channel.value(params.hmm_mincov)
-gtdb_arc_metadata       = Channel.fromPath(params.gtdb_arc_metadata)
-gtdb_bac_metadata       = Channel.fromPath(params.gtdb_bac_metadata)
-results                 = params.outputdir
+
+genomes   = Channel.fromPath(params.inputgenomes, checkIfExists : true)
+hmm_files = Channel.fromPath(params.hmms, checkIfExists : true)
+profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy, checkIfExists : true)
+dbsource = Channel.value(params.dbsource)
+hmm_mincov = Channel.value(params.hmm_mincov)
+gtdb_arc_metadata = Channel.fromPath(params.gtdb_arc_metadata, checkIfExists : true)
+gtdb_bac_metadata = Channel.fromPath(params.gtdb_bac_metadata, checkIfExists : true)
+results = params.outputdir
+
+//Return personnalized error when one of the files is missing
+
+workflow.onError {
+  
+  filename = workflow.errorReport
+  println ""
+  println "---------------- Error Message -----------------"
+  println " The file ${filename} is missing"  
+  println " Please verify that the file exists" 
+  println "------------------------------------------------"
+  println ""
+}
 
 process singleFaa {
   input: 
@@ -128,5 +171,20 @@ process pfClassify {
   shell:
   """
   pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --seqfaa=${genomes} --sqlitedb=gtdb.pf.db  $tblout $domtblout > gtdb.pf-classify.warnings.txt 2>&1
+  """
+}
+
+process db2Feather {
+  publishDir results, mode: 'copy'
+
+  input:
+  file "gtdb.pf.db" from gtdb_pf_db_ch
+
+  output:
+  file "gtdb.pf-db2feather.warnings.txt" into gtdb_db2feather_warnings_ch
+
+  shell:
+  """
+  pf-db2feather.r --gtdb --prefix=pfitmap gtdb.pf.db > gtdb.pf-db2feather.warnings.txt  2>&1
   """
 }
