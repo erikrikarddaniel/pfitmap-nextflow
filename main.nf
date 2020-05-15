@@ -185,6 +185,6 @@ process db2Feather {
 
   shell:
   """
-  pf-db2feather.r --verbose --prefix=pfitmap gtdb.pf.db > gtdb.pf-db2feather.warnings.txt  2>&1
+  pf-db2feather.r --gtdb --prefix=pfitmap gtdb.pf.db > gtdb.pf-db2feather.warnings.txt  2>&1
   """
 }
