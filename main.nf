@@ -119,6 +119,7 @@ process singleFaa {
 
 process hmmSearch {
   publishDir results, mode: 'copy'
+  cpus 4
 
   input:
   file genome from all_genomes_hmmsearch_ch
