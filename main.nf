@@ -119,6 +119,7 @@ process singleFaa {
 
 process hmmSearch {
   publishDir results, mode: 'copy'
+  cpus 4
 
   input:
   file genome from all_genomes_hmmsearch_ch
@@ -157,7 +158,7 @@ process pfClassify {
   input:
   val hmm_mincov from hmm_mincov
   val dbsource from dbsource
-  file "hmm_profile_hierarchy.tsv" from profiles_hierarchy
+  file hmm_profiles from profiles_hierarchy
   file "gtdb_metadata.tsv" from gtdbmetadata_ch
   file tblout from tblout_ch
   file domtblout from domtblout_ch
@@ -170,7 +171,7 @@ process pfClassify {
 
   shell:
   """
-  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=hmm_profile_hierarchy.tsv --singletable=gtdb.tsv.gz --seqfaa=${genomes} --sqlitedb=gtdb.pf.db  $tblout $domtblout > gtdb.pf-classify.warnings.txt 2>&1
+  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=$hmm_profiles --singletable=gtdb.tsv.gz --seqfaa=${genomes} --sqlitedb=gtdb.pf.db  $tblout $domtblout > gtdb.pf-classify.warnings.txt 2>&1
   """
 }
 
@@ -185,6 +186,6 @@ process db2Feather {
 
   shell:
   """
-  pf-db2feather.r --verbose --prefix=pfitmap gtdb.pf.db > gtdb.pf-db2feather.warnings.txt  2>&1
+  pf-db2feather.r --gtdb --prefix=pfitmap gtdb.pf.db > gtdb.pf-db2feather.warnings.txt  2>&1
   """
 }
