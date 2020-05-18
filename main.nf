@@ -158,7 +158,7 @@ process pfClassify {
   input:
   val hmm_mincov from hmm_mincov
   val dbsource from dbsource
-  file hmm_profiles from profiles_hierarchy
+  file profiles_hierarchy from profiles_hierarchy
   file "gtdb_metadata.tsv" from gtdbmetadata_ch
   file tblout from tblout_ch
   file domtblout from domtblout_ch
@@ -171,7 +171,7 @@ process pfClassify {
 
   shell:
   """
-  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=$hmm_profiles --singletable=gtdb.tsv.gz --seqfaa=${genomes} --sqlitedb=gtdb.pf.db  $tblout $domtblout > gtdb.pf-classify.warnings.txt 2>&1
+  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=$profiles_hierarchy --singletable=gtdb.tsv.gz --seqfaa=${genomes} --sqlitedb=gtdb.pf.db  $tblout $domtblout > gtdb.pf-classify.warnings.txt 2>&1
   """
 }
 
