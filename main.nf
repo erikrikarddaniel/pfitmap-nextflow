@@ -87,10 +87,8 @@ gtdb_arc_metadata = Channel.fromPath(params.gtdb_arc_metadata, checkIfExists : t
 gtdb_bac_metadata = Channel.fromPath(params.gtdb_bac_metadata, checkIfExists : true)
 results = params.outputdir
 
-//Return personnalized error when one of the files is missing
-
+// Return personalized error when one of the files is missing
 workflow.onError {
-  
   filename = workflow.errorReport
   println ""
   println "---------------- Error Message -----------------"
@@ -102,7 +100,7 @@ workflow.onError {
 
 process singleFaa {
   input: 
-  file("*.faa.gz") from genomes.collect()
+  file genome_dir from genomes
 
   output:
   file 'all_genomes.faa' into all_genomes_hmmsearch_ch
@@ -110,7 +108,7 @@ process singleFaa {
 
   shell:
   """
-  for f in \$(find . -name '*.faa.gz'|xargs readlink); do
+  for f in \$(find ${genome_dir}/ -name '*.faa.gz'); do
     a=\$(basename \$f | sed 's/\\..*//');
     gunzip -c \$f | sed "/^>/s/\$/ [\$a]/";
   done > all_genomes.faa
