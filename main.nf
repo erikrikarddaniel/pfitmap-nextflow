@@ -79,7 +79,7 @@ if (params.help) {
 // Create channels to start processing
 
 genomes   = Channel.fromPath(params.inputgenomes, checkIfExists : true)
-hmm_files = Channel.fromPath(params.hmms, checkIfExists : true)
+hmm_files = Channel.fromPath("$params.hmms/*.hmm") //, checkIfExists : true)
 profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy, checkIfExists : true)
 dbsource = Channel.value(params.dbsource)
 hmm_mincov = Channel.value(params.hmm_mincov)
@@ -120,8 +120,8 @@ process hmmSearch {
   cpus 4
 
   input:
-  file genome from all_genomes_hmmsearch_ch
-  file hmm     from hmm_files
+  file genome  from all_genomes_hmmsearch_ch
+  file hmms from hmm_files.collect()
   
   output:
   file ("*.tblout") into tblout_ch
@@ -129,7 +129,9 @@ process hmmSearch {
 
   shell:
   """
-  hmmsearch --tblout "${hmm.baseName}.tblout" --domtblout "${hmm.baseName}.domtblout" $hmm $genome
+  for h in *.hmm; do
+    hmmsearch --tblout \$(basename \$h .hmm).tblout --domtblout \$(basename \$h .hmm).domtblout \$h $genome
+  done
   """
 }
 
@@ -158,8 +160,8 @@ process pfClassify {
   val dbsource from dbsource
   file profiles_hierarchy from profiles_hierarchy
   file "gtdb_metadata.tsv" from gtdbmetadata_ch
-  file tblout from tblout_ch
-  file domtblout from domtblout_ch
+  file tblouts from tblout_ch
+  file domtblouts from domtblout_ch
   file genomes from all_genomes_classify_ch
 
   output:
@@ -169,7 +171,7 @@ process pfClassify {
 
   shell:
   """
-  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=$profiles_hierarchy --singletable=gtdb.tsv.gz --seqfaa=${genomes} --sqlitedb=gtdb.pf.db  $tblout $domtblout > gtdb.pf-classify.warnings.txt 2>&1
+  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=$profiles_hierarchy --singletable=gtdb.tsv.gz --seqfaa=${genomes} --sqlitedb=gtdb.pf.db  *.tblout *.domtblout > gtdb.pf-classify.warnings.txt 2>&1
   """
 }
 
