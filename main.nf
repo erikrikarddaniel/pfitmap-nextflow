@@ -27,24 +27,6 @@ params.gtdb_bac_metadata        = null
 params.max_cpus = 2
 params.max_time = "240.h"
 
-if (! ( params.dbsource =~ /.+:.+:.+/ ) ) { error "Error in dbsource format\ndbsource should be in the format db:db:release\nSee more using --help"}
-
-if( !params.inputgenomes ) {
-  error "Missing inputgenomes parameter\n[Parameter error] Please specify the parameter --inputgenomes\nSee more using --help" 
-}
-
-if( !params.profiles_hierarchy ) {
-  error "Missing profiles_hierarchy parameter\n[Parameter error] Please specify the parameter --profiles_hierarchy\nSee more using --help"
-}
-
-if( !params.gtdb_arc_metadata ) {
-  error "Missing gtdb_arc_metadata parameter\n[Parameter error] Please specify the parameter --gtdb_arc_metadata\nSee more using --help"
-}
-
-if( !params.gtdb_bac_metadata ) {
-  error "Missing gtdb_bac_metadata parameter\n[Parameter error] Please specify the parameter --gtdb_bac_metadata\nSee more using --help"
-}
-
 def helpMessage() {
   log.info """
 
@@ -75,6 +57,24 @@ def helpMessage() {
 if (params.help) {
   helpMessage()
   exit 0
+}
+
+if (! ( params.dbsource =~ /.+:.+:.+/ ) ) { error "Error in dbsource format\ndbsource should be in the format db:db:release\nSee more using --help"}
+
+if( !params.inputgenomes ) {
+  error "Missing inputgenomes parameter\n[Parameter error] Please specify the parameter --inputgenomes\nSee more using --help" 
+}
+
+if( !params.profiles_hierarchy ) {
+  error "Missing profiles_hierarchy parameter\n[Parameter error] Please specify the parameter --profiles_hierarchy\nSee more using --help"
+}
+
+if( !params.gtdb_arc_metadata ) {
+  error "Missing gtdb_arc_metadata parameter\n[Parameter error] Please specify the parameter --gtdb_arc_metadata\nSee more using --help"
+}
+
+if( !params.gtdb_bac_metadata ) {
+  error "Missing gtdb_bac_metadata parameter\n[Parameter error] Please specify the parameter --gtdb_bac_metadata\nSee more using --help"
 }
 
 // Create channels to start processing
