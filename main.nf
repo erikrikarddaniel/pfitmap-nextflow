@@ -116,7 +116,7 @@ process singleFaa {
 }
 
 process hmmSearch {
-  publishDir results, mode: 'copy'
+  publishDir "$results/hmmsearch", mode: 'copy'
   cpus 4
 
   input:
@@ -136,7 +136,7 @@ process hmmSearch {
 }
 
 process getMetadata {
-  publishDir results, mode: 'copy'
+  publishDir "$results/metadata", mode: 'copy'
 
   input:
   file arc_metadata from gtdb_arc_metadata
@@ -153,7 +153,7 @@ process getMetadata {
 }
 
 process pfClassify {
-  publishDir results, mode: 'copy'
+  publishDir "$results/classification", mode: 'copy'
 
   input:
   val hmm_mincov from hmm_mincov
