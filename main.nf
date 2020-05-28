@@ -79,7 +79,7 @@ if (params.help) {
 // Create channels to start processing
 
 genomes   = Channel.fromPath(params.inputgenomes, checkIfExists : true)
-hmm_files = Channel.fromPath(params.hmms, checkIfExists : true)
+hmm_files = Channel.fromPath("$params.hmms/*.hmm") //, checkIfExists : true)
 profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy, checkIfExists : true)
 dbsource = Channel.value(params.dbsource)
 hmm_mincov = Channel.value(params.hmm_mincov)
@@ -87,10 +87,8 @@ gtdb_arc_metadata = Channel.fromPath(params.gtdb_arc_metadata, checkIfExists : t
 gtdb_bac_metadata = Channel.fromPath(params.gtdb_bac_metadata, checkIfExists : true)
 results = params.outputdir
 
-//Return personnalized error when one of the files is missing
-
+// Return personalized error when one of the files is missing
 workflow.onError {
-  
   filename = workflow.errorReport
   println ""
   println "---------------- Error Message -----------------"
@@ -102,7 +100,7 @@ workflow.onError {
 
 process singleFaa {
   input: 
-  file("*.faa.gz") from genomes.collect()
+  file genome_dir from genomes
 
   output:
   file 'all_genomes.faa' into all_genomes_hmmsearch_ch
@@ -110,7 +108,7 @@ process singleFaa {
 
   shell:
   """
-  for f in \$(find . -name '*.faa.gz'|xargs readlink); do
+  for f in \$(find ${genome_dir}/ -name '*.faa.gz'); do
     a=\$(basename \$f | sed 's/\\..*//');
     gunzip -c \$f | sed "/^>/s/\$/ [\$a]/";
   done > all_genomes.faa
@@ -118,12 +116,12 @@ process singleFaa {
 }
 
 process hmmSearch {
-  publishDir results, mode: 'copy'
-  cpus 4
+  publishDir "$results/hmmsearch", mode: 'copy'
+  cpus params.max_cpus
 
   input:
-  file genome from all_genomes_hmmsearch_ch
-  file hmm     from hmm_files
+  file genome  from all_genomes_hmmsearch_ch
+  file hmms from hmm_files.collect()
   
   output:
   file ("*.tblout") into tblout_ch
@@ -131,12 +129,14 @@ process hmmSearch {
 
   shell:
   """
-  hmmsearch --tblout "${hmm.baseName}.tblout" --domtblout "${hmm.baseName}.domtblout" $hmm $genome
+  for h in *.hmm; do
+    hmmsearch --cpu ${task.cpus} --tblout \$(basename \$h .hmm).tblout --domtblout \$(basename \$h .hmm).domtblout \$h $genome
+  done
   """
 }
 
 process getMetadata {
-  publishDir results, mode: 'copy'
+  publishDir "$results/metadata", mode: 'copy'
 
   input:
   file arc_metadata from gtdb_arc_metadata
@@ -153,15 +153,15 @@ process getMetadata {
 }
 
 process pfClassify {
-  publishDir results, mode: 'copy'
+  publishDir "$results/classification", mode: 'copy'
 
   input:
   val hmm_mincov from hmm_mincov
   val dbsource from dbsource
-  file hmm_profiles from profiles_hierarchy
+  file profiles_hierarchy from profiles_hierarchy
   file "gtdb_metadata.tsv" from gtdbmetadata_ch
-  file tblout from tblout_ch
-  file domtblout from domtblout_ch
+  file tblouts from tblout_ch
+  file domtblouts from domtblout_ch
   file genomes from all_genomes_classify_ch
 
   output:
@@ -171,21 +171,28 @@ process pfClassify {
 
   shell:
   """
-  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=$hmm_profiles --singletable=gtdb.tsv.gz --seqfaa=${genomes} --sqlitedb=gtdb.pf.db  $tblout $domtblout > gtdb.pf-classify.warnings.txt 2>&1
+  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=$profiles_hierarchy --singletable=gtdb.tsv.gz --seqfaa=${genomes} --sqlitedb=gtdb.pf.db  *.tblout *.domtblout > gtdb.pf-classify.warnings.txt 2>&1
   """
 }
 
 process db2Feather {
-  publishDir results, mode: 'copy'
+  publishDir "$results/feather", mode: 'copy'
 
   input:
   file "gtdb.pf.db" from gtdb_pf_db_ch
 
   output:
   file "gtdb.pf-db2feather.warnings.txt" into gtdb_db2feather_warnings_ch
+  file "*.feather" into feather_files
 
   shell:
   """
   pf-db2feather.r --gtdb --prefix=pfitmap gtdb.pf.db > gtdb.pf-db2feather.warnings.txt  2>&1
   """
+}
+
+workflow.onComplete {
+  println
+  println "*** Workflow finished, status: ${ workflow.success ? 'OK' : 'failed' }. Make sure you check $results/classification/gtdb.pf-classify.warnings.txt. ***"
+  println
 }
