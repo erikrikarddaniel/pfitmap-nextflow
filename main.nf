@@ -117,7 +117,7 @@ process singleFaa {
 
 process hmmSearch {
   publishDir "$results/hmmsearch", mode: 'copy'
-  cpus 4
+  cpus params.max_cpus
 
   input:
   file genome  from all_genomes_hmmsearch_ch
@@ -130,7 +130,7 @@ process hmmSearch {
   shell:
   """
   for h in *.hmm; do
-    hmmsearch --tblout \$(basename \$h .hmm).tblout --domtblout \$(basename \$h .hmm).domtblout \$h $genome
+    hmmsearch --cpu ${task.cpus} --tblout \$(basename \$h .hmm).tblout --domtblout \$(basename \$h .hmm).domtblout \$h $genome
   done
   """
 }
