@@ -101,19 +101,23 @@ workflow.onError {
 }
 
 process singleFaa {
+  publishDir "$results/genomes", mode: "copy"
+
   input: 
   file genome_dir from genomes
 
   output:
   file 'all_genomes.faa' into all_genomes_hmmsearch_ch
   file 'all_genomes.faa' into all_genomes_classify_ch
+  file 'processed_genomes.txt' into processed_genomes_ch
 
   shell:
   """
   for f in \$(find ${genome_dir}/ -name '*.faa.gz'); do
-    a=\$(basename \$f | sed 's/\\..*//');
-    gunzip -c \$f | sed "/^>/s/\$/ [\$a]/";
-  done > all_genomes.faa
+    a=\$(basename \$f | sed 's/\\..*//')
+    echo "\$a: \$f" >> processed_genomes.txt
+    gunzip -c \$f | sed "/^>/s/\$/ [\$a]/" >> all_genomes.faa
+  done
   """
 }
 
