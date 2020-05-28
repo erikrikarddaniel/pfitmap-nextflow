@@ -190,3 +190,9 @@ process db2Feather {
   pf-db2feather.r --gtdb --prefix=pfitmap gtdb.pf.db > gtdb.pf-db2feather.warnings.txt  2>&1
   """
 }
+
+workflow.onComplete {
+  println
+  println "*** Workflow finished, status: ${ workflow.success ? 'OK' : 'failed' }. Make sure you check $results/classification/gtdb.pf-classify.warnings.txt. ***"
+  println
+}
