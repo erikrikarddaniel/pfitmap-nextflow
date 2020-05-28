@@ -176,13 +176,14 @@ process pfClassify {
 }
 
 process db2Feather {
-  publishDir results, mode: 'copy'
+  publishDir "$results/feather", mode: 'copy'
 
   input:
   file "gtdb.pf.db" from gtdb_pf_db_ch
 
   output:
   file "gtdb.pf-db2feather.warnings.txt" into gtdb_db2feather_warnings_ch
+  file "*.feather" into feather_files
 
   shell:
   """
