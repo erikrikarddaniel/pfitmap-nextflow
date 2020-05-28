@@ -38,17 +38,18 @@ def helpMessage() {
 
   Mandatory arguments:
   --inputgenomes path/to/genomes_directory		Path and name of the directory containing annotated genomes in the format faa.gz 
-  --gtdb_bac_metadata path/to/file		Path and name of tsv file including the metadata for bacterial genomes
-  --gtdb_arc_metadata path/to/file 		Path and name of tsv file including the metadata for archaeal genomes
-  --hmm						Path to the HMM profile files 
-  --profiles_hierarchy	path/to/file		Path and name of tsv file including hmm profile names and information (See README file for more details)		
-  --hmm_mincov value			Set a value for the threshold of coverage hmm_profile/querry (default = 0.9)
-  --dbsource db:db:release		Set the database source in the format db:db:release, where [db] is the name of the database and [release] mentions the release number/name (default = GTDB:GTDB:latest)
-  --outputdir path/to/results		Path to the results directory
+  --gtdb_bac_metadata path/to/file			Path and name of tsv file including the metadata for bacterial genomes
+  --gtdb_arc_metadata path/to/file 			Path and name of tsv file including the metadata for archaeal genomes
+  --hmm							Path to the HMM profile files 
+  --profiles_hierarchy	path/to/file			Path and name of tsv file including hmm profile names and information (See README file for more details)		
+  --hmm_mincov value					Set a value for the threshold of coverage hmm_profile/querry (default = 0.9)
+  --dbsource db:db:release				Set the database source in the format db:db:release, where [db] is the name of the database and [release] mentions 
+									the release number/name (default = GTDB:GTDB:latest)
+  --outputdir path/to/results				Path to the results directory
 
   Non Mandatory parameters:
-  --max_cpus			Maximum number of CPU cores to be used (default = 2)
-  --max_time			Maximum time per process (default = 10 days)
+  --max_cpus						Maximum number of CPU cores to be used (default = 2)
+  --max_time						Maximum time per process (default = 10 days)
   
   """.stripIndent()
 }
