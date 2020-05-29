@@ -132,11 +132,12 @@ process hmmSearch {
   output:
   file ("*.tblout") into tblout_ch
   file ("*.domtblout") into domtblout_ch
+  file ("*.hmmout.gz") into hmmout_ch
 
   shell:
   """
   for h in *.hmm; do
-    hmmsearch --cpu ${task.cpus} --tblout \$(basename \$h .hmm).tblout --domtblout \$(basename \$h .hmm).domtblout \$h $genome
+    hmmsearch --cpu ${task.cpus} --tblout \$(basename \$h .hmm).tblout --domtblout \$(basename \$h .hmm).domtblout \$h $genome | gzip -c > \$(basename \$h .hmm).hmmout.gz
   done
   """
 }
