@@ -41,7 +41,7 @@ def helpMessage() {
   --gtdb_bac_metadata path/to/file			Path and name of tsv file including the metadata for bacterial genomes
   --gtdb_arc_metadata path/to/file 			Path and name of tsv file including the metadata for archaeal genomes
   --hmm							Path to the HMM profile files 
-  --profiles_hierarchy	path/to/file			Path and name of tsv file including hmm profile names and information (See README file for more details)		
+  --profiles_hierarchy	path/to/file			Path and name of tsv file including hmm profile names and information (See README.md file for more details)		
   --hmm_mincov value					Set a value for the threshold of coverage hmm_profile/querry (default = 0.9)
   --dbsource db:db:release				Set the database source in the format db:db:release, where [db] is the name of the database and [release] mentions 
 									the release number/name (default = GTDB:GTDB:latest)
