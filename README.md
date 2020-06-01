@@ -18,5 +18,8 @@ plen		Length of the profile (in bp)
 The file must have a header describing the fields in the above order.
 
 *example:*
-`profile	prank	psuperfamily	pfamily	pclass	psubclass	pgroup	psubgroup	version plen
- NrdBh	subclass	Ferritin-like	NrdBR2lox	NrdB	NrdBh	0.6	337`
+```
+profile	prank	psuperfamily	pfamily	pclass	psubclass	pgroup	psubgroup	version plen
+NrdBh	subclass	Ferritin-like	NrdBR2lox	NrdB	NrdBh	0.6	337
+```
+
