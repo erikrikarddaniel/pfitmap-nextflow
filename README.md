@@ -2,7 +2,7 @@
 Nextflow pipeline for hierarchical protein classification
 
 
-profiles_hierarchy.tsv file description:
+**profiles_hierarchy.tsv** file description:
 A tsv file listing all hmm profiles that are used for hmm search described by the fields:
 profile		Name of the hmm profile
 prank		Rank of the profile (domain, family, class, subclass, group...)
@@ -16,3 +16,7 @@ version		Version of the profile's rank
 plen		Length of the profile (in bp)
 
 The file must have a header describing the fields in the above order.
+
+*example:*
+`profile	prank	psuperfamily	pfamily	pclass	psubclass	pgroup	psubgroup	version plen
+ NrdBh	subclass	Ferritin-like	NrdBR2lox	NrdB	NrdBh	0.6	337`
