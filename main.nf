@@ -1,16 +1,25 @@
 #!/usr/bin/env nextflow
 
 /**
- * main.nf: Nextflow workflow for GTDB
+ * main.nf: Nextflow workflow for Pfitmap/GTDB
  *
- * The GTDB genomes are downloaded and annotated
- * The workflow starts from a set of annotated genomes in the format of faa.gz files
- * Requirements: directory with all hmm profiles to be run 
+ * The GTDB genomes are expected to be downloaded and annotated.
  *
+ * The workflow starts from a set of annotated genomes in the format of faa.gz files (--inputgenomes) 
+ * plus a set of hmm profiles (--hmms). The protein sequences will be searched with HMMER using the
+ * hmm files and subsequently classified into which profile it fits best into. The latter uses a
+ * table describing the hierarchy of hmm profiles (--profiles_hierarchy; see --help).
+ *
+ * Requirements: 
+ *   directory with faa.gz files
+ *   directory with all hmm profiles to be run 
+ *   file describing the hmm profile hierarchy
+ *
+ * Processing steps:
  *   Concatenate all faa.gz files into a single one
- *   Performs an hmm_search of all hmm profiles on all the genomes
- *   Downloads the metadata files for Archaea and Bacterial genomes from gtdb latest version repository and concatenates them into a single metadata file
- *   Classify the found 
+ *   Perform an hmmsearch of all hmm profiles on all the proteomes
+ *   Download the metadata files for archaeal and bacterial genomes from gtdb latest version repository and concatenates them into a single metadata file
+ *   Classify the hits 
  *
  * ghada.nouraia@dbb.su.se daniel.lundin@dbb.su.se
  */
@@ -18,11 +27,13 @@
 // Parameters
 params.help                     = false
 params.inputgenomes             = null
+params.hmms                     = null
 params.profiles_hierarchy       = null
 params.dbsource                 = 'GTDB:GTDB:latest'
-params.hmm_mincov               = 0.9
+params.hmm_mincov               = 0.7
 params.gtdb_arc_metadata        = null
 params.gtdb_bac_metadata        = null
+params.feather_prefix           = 'pfitmap-gtdb'
 
 params.max_cpus = 2
 params.max_time = "240.h"
@@ -37,14 +48,14 @@ def helpMessage() {
   nextflow run main.nf --inputgenomes path/to/genomes --outputdir path/to/results --hmm_mincov value --dbsource GTDB:GTDB:release
 
   Mandatory arguments:
-  --inputgenomes path/to/genomes_directory		Path and name of the directory containing annotated genomes in the format faa.gz 
-  --gtdb_bac_metadata path/to/file			Path and name of tsv file including the metadata for bacterial genomes
-  --gtdb_arc_metadata path/to/file 			Path and name of tsv file including the metadata for archaeal genomes
-  --hmm							Path to the HMM profile files 
-  --profiles_hierarchy	path/to/file			Path and name of tsv file including hmm profile names and information (See README.md file for more details)		
-  --hmm_mincov value					Set a value for the threshold of coverage hmm_profile/querry (default = 0.9)
+  --inputgenomes path/to/genomes_directory		Path of directory containing annotated genomes in the format faa.gz 
+  --gtdb_bac_metadata path/to/file			Path of tsv file including the metadata for bacterial genomes
+  --gtdb_arc_metadata path/to/file 			Path of tsv file including the metadata for archaeal genomes
+  --hmms path/to/hmm_directory                          Path of directory with HMM profile files 
+  --profiles_hierarchy	path/to/file			Path of tsv file including hmm profile names and information (See README.md file for more details)		
+  --hmm_mincov value					Set a value for the threshold of coverage hmm_profile/querry (default = 0.7)
   --dbsource db:db:release				Set the database source in the format db:db:release, where [db] is the name of the database and [release] mentions 
-									the release number/name (default = GTDB:GTDB:latest)
+							  the release number/name (default = GTDB:GTDB:latest)
   --outputdir path/to/results				Path to the results directory
 
   Non Mandatory parameters:
@@ -81,7 +92,7 @@ if( !params.gtdb_bac_metadata ) {
 // Create channels to start processing
 
 genomes   = Channel.fromPath(params.inputgenomes, checkIfExists : true)
-hmm_files = Channel.fromPath("$params.hmms/*.hmm") //, checkIfExists : true)
+hmm_files = Channel.fromPath("$params.hmms/*.hmm")
 profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy, checkIfExists : true)
 dbsource = Channel.value(params.dbsource)
 hmm_mincov = Channel.value(params.hmm_mincov)
