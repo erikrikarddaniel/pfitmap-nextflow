@@ -33,7 +33,7 @@ params.dbsource                 = 'GTDB:GTDB:latest'
 params.hmm_mincov               = 0.7
 params.gtdb_arc_metadata        = null
 params.gtdb_bac_metadata        = null
-params.feather_prefix           = 'pfitmap-gtdb'
+params.featherprefix           = 'pfitmap-gtdb'
 
 params.max_cpus = 2
 params.max_time = "240.h"
@@ -48,19 +48,20 @@ def helpMessage() {
   nextflow run main.nf --inputgenomes path/to/genomes --outputdir path/to/results --hmm_mincov value --dbsource GTDB:GTDB:release
 
   Mandatory arguments:
-  --inputgenomes path/to/genomes_directory		Path of directory containing annotated genomes in the format faa.gz 
-  --gtdb_bac_metadata path/to/file			Path of tsv file including the metadata for bacterial genomes
-  --gtdb_arc_metadata path/to/file 			Path of tsv file including the metadata for archaeal genomes
-  --hmms path/to/hmm_directory                          Path of directory with HMM profile files 
-  --profiles_hierarchy	path/to/file			Path of tsv file including hmm profile names and information (See README.md file for more details)		
-  --hmm_mincov value					Set a value for the threshold of coverage hmm_profile/querry (default = 0.7)
-  --dbsource db:db:release				Set the database source in the format db:db:release, where [db] is the name of the database and [release] mentions 
-							  the release number/name (default = GTDB:GTDB:latest)
-  --outputdir path/to/results				Path to the results directory
+    --inputgenomes path/to/genomes_directory		Path of directory containing annotated genomes in the format faa.gz 
+    --gtdb_bac_metadata path/to/file			Path of tsv file including the metadata for bacterial genomes
+    --gtdb_arc_metadata path/to/file 			Path of tsv file including the metadata for archaeal genomes
+    --hmms path/to/hmm_directory                        Path of directory with HMM profile files 
+    --profiles_hierarchy path/to/file			Path of tsv file including hmm profile names and information (See README.md file for more details)		
+    --hmm_mincov value					Set a value for the threshold of coverage hmm_profile/querry (default = 0.7)
+    --dbsource db:db:release				Set the database source in the format db:db:release, where [db] is the name of the database and [release] mentions 
+                                                          the release number/name (default = GTDB:GTDB:latest)
+    --outputdir path/to/results				Path to the results directory
+    --featherprefix prefix                             Prefix for generated feather files (default "pfitmap-gtdb").
 
   Non Mandatory parameters:
-  --max_cpus						Maximum number of CPU cores to be used (default = 2)
-  --max_time						Maximum time per process (default = 10 days)
+    --max_cpus						Maximum number of CPU cores to be used (default = 2)
+    --max_time						Maximum time per process (default = 10 days)
   
   """.stripIndent()
 }
@@ -96,6 +97,7 @@ hmm_files = Channel.fromPath("$params.hmms/*.hmm")
 profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy, checkIfExists : true)
 dbsource = Channel.value(params.dbsource)
 hmm_mincov = Channel.value(params.hmm_mincov)
+featherprefix = Channel.value(params.featherprefix)
 gtdb_arc_metadata = Channel.fromPath(params.gtdb_arc_metadata, checkIfExists : true)
 gtdb_bac_metadata = Channel.fromPath(params.gtdb_bac_metadata, checkIfExists : true)
 results = params.outputdir
@@ -174,38 +176,23 @@ process pfClassify {
   publishDir "$results/classification", mode: 'copy'
 
   input:
-  val hmm_mincov from hmm_mincov
-  val dbsource from dbsource
-  file profiles_hierarchy from profiles_hierarchy
-  file "gtdb_metadata.tsv" from gtdbmetadata_ch
-  file tblouts from tblout_ch
-  file domtblouts from domtblout_ch
-  file genomes from all_genomes_classify_ch
+    val hmm_mincov from hmm_mincov
+    val featherprefix from featherprefix
+    val dbsource from dbsource
+    file profiles_hierarchy from profiles_hierarchy
+    file "gtdb_metadata.tsv" from gtdbmetadata_ch
+    file tblouts from tblout_ch
+    file domtblouts from domtblout_ch
+    file genomes from all_genomes_classify_ch
 
   output:
-  file "gtdb.pf.db" into gtdb_pf_db_ch
-  file "gtdb.tsv.gz" into gtdb_tsv_ch
-  file "gtdb.pf-classify.warnings.txt" into gtdb_classify_warnings_ch
+    file "gtdb.tsv.gz" into gtdb_tsv_ch
+    file "gtdb.pf-classify.warnings.txt" into gtdb_classify_warnings_ch
+    file "*.feather" into feather_files
 
   shell:
   """
-  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=$profiles_hierarchy --singletable=gtdb.tsv.gz --seqfaa=${genomes} --sqlitedb=gtdb.pf.db  *.tblout *.domtblout > gtdb.pf-classify.warnings.txt 2>&1
-  """
-}
-
-process db2Feather {
-  publishDir "$results/feather", mode: 'copy'
-
-  input:
-  file "gtdb.pf.db" from gtdb_pf_db_ch
-
-  output:
-  file "gtdb.pf-db2feather.warnings.txt" into gtdb_db2feather_warnings_ch
-  file "*.feather" into feather_files
-
-  shell:
-  """
-  pf-db2feather.r --gtdb --prefix=pfitmap gtdb.pf.db > gtdb.pf-db2feather.warnings.txt  2>&1
+  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=$profiles_hierarchy --singletable=gtdb.tsv.gz --seqfaa=${genomes} --featherprefix=${featherprefix}  *.tblout *.domtblout > gtdb.pf-classify.warnings.txt 2>&1
   """
 }
 
