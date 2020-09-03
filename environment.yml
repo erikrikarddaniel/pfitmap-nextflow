@@ -8,5 +8,5 @@ channels:
   - matricaria
 dependencies:
   - hmmer=3.3
-  - pfitmap-db>=1.9.9
+  - pfitmap-db>=1.9.10
   - r-stringi
