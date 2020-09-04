@@ -5,20 +5,24 @@
  *
  * The GTDB genomes are expected to be downloaded and annotated.
  *
- * The workflow starts from a set of annotated genomes in the format of faa.gz files (--inputgenomes) 
- * plus a set of hmm profiles (--hmms). The protein sequences will be searched with HMMER using the
- * hmm files and subsequently classified into which profile it fits best into. The latter uses a
- * table describing the hierarchy of hmm profiles (--profiles_hierarchy; see --help).
+ * The workflow starts from a set of annotated genomes in the format of faa.gz files (--inputfaas) 
+ * and gff.gz files (--inputgffs) plus a set of hmm profiles (--hmms). The protein sequences will be
+ * searched with HMMER using the hmm files and subsequently classified into which profile it fits
+ * best into. The latter uses a table describing the hierarchy of hmm profiles
+ * (--profiles_hierarchy; see --help).
  *
  * Requirements: 
  *   directory with faa.gz files
+ *   directory with .gff.gz files
  *   directory with all hmm profiles to be run 
  *   file describing the hmm profile hierarchy
  *
  * Processing steps:
  *   Concatenate all faa.gz files into a single one
+ *   Concatenate all gff.gz files into a single one
  *   Perform an hmmsearch of all hmm profiles on all the proteomes
- *   Download the metadata files for archaeal and bacterial genomes from gtdb latest version repository and concatenates them into a single metadata file
+ *   Download the metadata files for archaeal and bacterial genomes from gtdb latest version 
+ *     repository and concatenate them into a single metadata file
  *   Classify the hits 
  *
  * ghada.nouraia@dbb.su.se daniel.lundin@dbb.su.se
@@ -26,7 +30,8 @@
 
 // Parameters
 params.help                     = false
-params.inputgenomes             = null
+params.inputfaas                = null
+params.inputgffs                = null
 params.hmms                     = null
 params.profiles_hierarchy       = null
 params.dbsource                 = 'GTDB:GTDB:latest'
@@ -45,10 +50,11 @@ def helpMessage() {
 
   The typical command for running the pipeline is as follows:
 
-  nextflow run main.nf --inputgenomes path/to/genomes --outputdir path/to/results --hmm_mincov value --dbsource GTDB:GTDB:release
+  nextflow run main.nf --inputfaas path/to/genomes.faa.gzs --inputgffs path/to/genomes.gff.gzs --outputdir path/to/results --hmm_mincov value --dbsource GTDB:GTDB:release
 
   Mandatory arguments:
-    --inputgenomes path/to/genomes_directory		Path of directory containing annotated genomes in the format faa.gz 
+    --inputfaas path/to/genomes.faa.gzs  		Path of directory containing annotated genomes in the format faa.gz 
+    --inputgffs path/to/genomes.gff.gzs  		Path of directory containing annotated genomes in the format gff.gz 
     --gtdb_bac_metadata path/to/file			Path of tsv file including the metadata for bacterial genomes
     --gtdb_arc_metadata path/to/file 			Path of tsv file including the metadata for archaeal genomes
     --hmms path/to/hmm_directory                        Path of directory with HMM profile files 
@@ -74,8 +80,8 @@ if (params.help) {
 
 if (! ( params.dbsource =~ /.+:.+:.+/ ) ) { error "Error in dbsource format\ndbsource should be in the format db:db:release\nSee more using --help"}
 
-if( !params.inputgenomes ) {
-  error "Missing inputgenomes parameter\n[Parameter error] Please specify the parameter --inputgenomes\nSee more using --help" 
+if( !params.inputfaas ) {
+  error "Missing inputfaas parameter\n[Parameter error] Please specify the parameter --inputfaas\nSee more using --help" 
 }
 
 if( !params.profiles_hierarchy ) {
@@ -91,16 +97,16 @@ if( !params.gtdb_bac_metadata ) {
 }
 
 // Create channels to start processing
-
-genomes   = Channel.fromPath(params.inputgenomes, checkIfExists : true)
-hmm_files = Channel.fromPath("$params.hmms/*.hmm")
+genome_faas        = Channel.fromPath(params.inputfaas, checkIfExists : true)
+genome_gffs        = Channel.fromPath(params.inputgffs, checkIfExists : true)
+hmm_files          = Channel.fromPath("$params.hmms/*.hmm")
 profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy, checkIfExists : true)
-dbsource = Channel.value(params.dbsource)
-hmm_mincov = Channel.value(params.hmm_mincov)
-featherprefix = Channel.value(params.featherprefix)
-gtdb_arc_metadata = Channel.fromPath(params.gtdb_arc_metadata, checkIfExists : true)
-gtdb_bac_metadata = Channel.fromPath(params.gtdb_bac_metadata, checkIfExists : true)
-results = params.outputdir
+dbsource           = Channel.value(params.dbsource)
+hmm_mincov         = Channel.value(params.hmm_mincov)
+featherprefix      = Channel.value(params.featherprefix)
+gtdb_arc_metadata  = Channel.fromPath(params.gtdb_arc_metadata, checkIfExists : true)
+gtdb_bac_metadata  = Channel.fromPath(params.gtdb_bac_metadata, checkIfExists : true)
+results            = params.outputdir
 
 // Return personalized error when one of the files is missing
 workflow.onError {
@@ -113,33 +119,58 @@ workflow.onError {
   println ""
 }
 
-process singleFaa {
+process join_faas {
   publishDir "$results/genomes", mode: "copy"
 
   input: 
-  file genome_dir from genomes
+  file genome_dir from genome_faas
 
   output:
-  file 'all_genomes.faa' into all_genomes_hmmsearch_ch
-  file 'all_genomes.faa' into all_genomes_classify_ch
-  file 'processed_genomes.txt' into processed_genomes_ch
+  file 'all_genomes.faa' into all_genome_faas_hmmsearch_ch
+  file 'all_genomes.faa' into all_genome_faas_classify_ch
+  file 'processed_genome_faas.txt' into processed_genome_faas_ch
 
   shell:
   """
   for f in \$(find ${genome_dir}/ -name '*.faa.gz'); do
     a=\$(basename \$f | sed 's/\\..*//')
-    echo "\$a: \$f" >> processed_genomes.txt
+    echo "\$a: \$f" >> processed_genome_faas.txt
     gunzip -c \$f | sed "/^>/s/\$/ [\$a]/" >> all_genomes.faa
   done
   """
 }
 
-process hmmSearch {
+process join_gffs {
+  publishDir "$results/genomes", mode: "copy"
+
+  input: 
+  file genome_dir from genome_gffs
+
+  output:
+  file 'all_genomes.gff.gz' into all_genome_gffs_ch
+
+  shell:
+  """
+  for f in \$(find ${genome_dir}/ -name '*.gff.gz'); do
+    a=\$(basename \$f | sed 's/\\..*//')
+    gunzip -c \$f | sed "/^>/s/\$/ [\$a]/" >> all_genomes.gff
+  done
+  gzip all_genomes.gff
+  """
+}
+
+/**
+ * Run the hmmsearches.
+ *
+ * This is now called *once* but should be called once per hmm file. I haven't yet found
+ * a way of duplicating the channel with the faa file though.
+ */
+process hmmsearch {
   publishDir "$results/hmmsearch", mode: 'copy'
   cpus params.max_cpus
 
   input:
-  file genome  from all_genomes_hmmsearch_ch
+  file genome  from all_genome_faas_hmmsearch_ch
   file hmms from hmm_files.collect()
   
   output:
@@ -183,7 +214,7 @@ process pfClassify {
     file "gtdb_metadata.tsv" from gtdbmetadata_ch
     file tblouts from tblout_ch
     file domtblouts from domtblout_ch
-    file genomes from all_genomes_classify_ch
+    file genome_faas from all_genome_faas_classify_ch
 
   output:
     file "gtdb.tsv.gz" into gtdb_tsv_ch
@@ -193,7 +224,7 @@ process pfClassify {
 
   shell:
   """
-  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=$profiles_hierarchy --singletable=gtdb.tsv.gz --seqfaa=${genomes} --featherprefix=${featherprefix}  --missing=missing_genomes.txt *.tblout *.domtblout > gtdb.pf-classify.warnings.txt 2>&1
+  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=$profiles_hierarchy --singletable=gtdb.tsv.gz --seqfaa=${genome_faas} --featherprefix=${featherprefix}  --missing=missing_genomes.txt *.tblout *.domtblout > gtdb.pf-classify.warnings.txt 2>&1
   """
 }
 
