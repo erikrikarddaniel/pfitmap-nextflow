@@ -6,20 +6,19 @@
  * The GTDB genomes are expected to be downloaded and annotated.
  *
  * The workflow starts from a set of annotated genomes in the format of faa.gz files (--inputfaas) 
- * and gff.gz files (--inputgffs) plus a set of hmm profiles (--hmms). The protein sequences will be
- * searched with HMMER using the hmm files and subsequently classified into which profile it fits
- * best into. The latter uses a table describing the hierarchy of hmm profiles
+ * and, optionally, gff.gz files (--inputgffs) plus a set of hmm profiles (--hmms). The protein 
+ * sequences will be searched with HMMER using the hmm files and subsequently classified into which 
+ * profile it fits best into. The latter uses a table describing the hierarchy of hmm profiles
  * (--profiles_hierarchy; see --help).
  *
  * Requirements: 
  *   directory with faa.gz files
- *   directory with .gff.gz files
  *   directory with all hmm profiles to be run 
  *   file describing the hmm profile hierarchy
  *
  * Processing steps:
  *   Concatenate all faa.gz files into a single one
- *   Concatenate all gff.gz files into a single one
+ *   Optionally, concatenate all gff.gz files into a single one
  *   Perform an hmmsearch of all hmm profiles on all the proteomes
  *   Download the metadata files for archaeal and bacterial genomes from gtdb latest version 
  *     repository and concatenate them into a single metadata file
@@ -50,11 +49,10 @@ def helpMessage() {
 
   The typical command for running the pipeline is as follows:
 
-  nextflow run main.nf --inputfaas path/to/genomes.faa.gzs --inputgffs path/to/genomes.gff.gzs --outputdir path/to/results --hmm_mincov value --dbsource GTDB:GTDB:release
+  nextflow run main.nf --inputfaas path/to/genomes.faa.gzs [--inputgffs path/to/genomes.gff.gzs] --outputdir path/to/results --hmm_mincov value --dbsource GTDB:GTDB:release
 
   Mandatory arguments:
     --inputfaas path/to/genomes.faa.gzs  		Path of directory containing annotated genomes in the format faa.gz 
-    --inputgffs path/to/genomes.gff.gzs  		Path of directory containing annotated genomes in the format gff.gz 
     --gtdb_bac_metadata path/to/file			Path of tsv file including the metadata for bacterial genomes
     --gtdb_arc_metadata path/to/file 			Path of tsv file including the metadata for archaeal genomes
     --hmms path/to/hmm_directory                        Path of directory with HMM profile files 
@@ -66,6 +64,7 @@ def helpMessage() {
     --featherprefix prefix                             Prefix for generated feather files (default "pfitmap-gtdb").
 
   Non Mandatory parameters:
+    --inputgffs path/to/genomes.gff.gzs  		Path of directory containing annotated genomes in the format gff.gz 
     --max_cpus						Maximum number of CPU cores to be used (default = 2)
     --max_time						Maximum time per process (default = 10 days)
   
@@ -98,7 +97,12 @@ if( !params.gtdb_bac_metadata ) {
 
 // Create channels to start processing
 genome_faas        = Channel.fromPath(params.inputfaas, checkIfExists : true)
-genome_gffs        = Channel.fromPath(params.inputgffs, checkIfExists : true)
+if ( params.inputgffs ) { 
+  genome_gffs        = Channel.fromPath(params.inputgffs, checkIfExists : true) 
+}
+else {
+  genome_gffs = Channel.empty()
+}
 hmm_files          = Channel.fromPath("$params.hmms/*.hmm")
 profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy, checkIfExists : true)
 dbsource           = Channel.value(params.dbsource)
