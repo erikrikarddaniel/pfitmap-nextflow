@@ -64,7 +64,7 @@ def helpMessage() {
     --featherprefix prefix                             Prefix for generated feather files (default "pfitmap-gtdb").
 
   Non Mandatory parameters:
-    --inputgffs path/to/genomes.gff.gzs  		Path of directory containing annotated genomes in the format gff.gz 
+    --inputgffs path/to/genomes.gff.gzs  		Path of directory containing annotated genomes in the format gff.gz. Will output a concatenated file with the table part of all files.
     --max_cpus						Maximum number of CPU cores to be used (default = 2)
     --max_time						Maximum time per process (default = 10 days)
   
@@ -157,7 +157,7 @@ process join_gffs {
   """
   for f in \$(find ${genome_dir}/ -name '*.gff.gz'); do
     a=\$(basename \$f | sed 's/\\..*//')
-    gunzip -c \$f | sed "/^>/s/\$/ [\$a]/" >> all_genomes.gff
+    gunzip -c \$f | sed "/^>/s/\$/ [\$a]/" | grep '\t' >> all_genomes.gff
   done
   gzip all_genomes.gff
   """
