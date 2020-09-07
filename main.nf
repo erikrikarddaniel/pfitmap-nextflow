@@ -155,9 +155,10 @@ process join_gffs {
 
   shell:
   """
+  echo "seqname	source	feature	start	end	score	strand	frame	attribute	genome_accno" > all_genomes.gff
   for f in \$(find ${genome_dir}/ -name '*.gff.gz'); do
     a=\$(basename \$f | sed 's/\\..*//')
-    gunzip -c \$f | sed "/^>/s/\$/ [\$a]/" | grep '\t' >> all_genomes.gff
+    gunzip -c \$f | sed "/^/s/\$/ \$a/" | grep '\t' >> all_genomes.gff
   done
   gzip all_genomes.gff
   """
