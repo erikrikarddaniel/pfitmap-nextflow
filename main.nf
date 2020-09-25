@@ -96,7 +96,7 @@ if( !params.gtdb_bac_metadata ) {
 }
 
 // Create channels to start processing
-genome_faas        = Channel.fromPath(params.inputfaas, checkIfExists : true)
+genome_faas          = Channel.value(file(params.inputfaas, checkIfExists: true))
 if ( params.inputgffs ) { 
   genome_gffs        = Channel.fromPath(params.inputgffs, checkIfExists : true) 
 }
@@ -165,9 +165,6 @@ process join_gffs {
 
 /**
  * Run the hmmsearches.
- *
- * This is now called *once* but should be called once per hmm file. I haven't yet found
- * a way of duplicating the channel with the faa file though.
  */
 process hmmsearch {
   publishDir "$results/hmmsearch", mode: 'copy'
@@ -175,7 +172,7 @@ process hmmsearch {
 
   input:
   file genome  from all_genome_faas_hmmsearch_ch
-  file hmms from hmm_files.collect()
+  file hmm from hmm_files
   
   output:
   file ("*.tblout") into tblout_ch
@@ -184,9 +181,7 @@ process hmmsearch {
 
   shell:
   """
-  for h in *.hmm; do
-    hmmsearch --cpu ${task.cpus} --tblout \$(basename \$h .hmm).tblout --domtblout \$(basename \$h .hmm).domtblout \$h $genome | gzip -c > \$(basename \$h .hmm).hmmout.gz
-  done
+  hmmsearch --cpu ${task.cpus} --tblout \$(basename ${hmm} .hmm).tblout --domtblout \$(basename ${hmm} .hmm).domtblout ${hmm} $genome | gzip -c > \$(basename ${hmm} .hmm).hmmout.gz
   """
 }
 
@@ -216,8 +211,8 @@ process pfClassify {
     val dbsource from dbsource
     file profiles_hierarchy from profiles_hierarchy
     file "gtdb_metadata.tsv" from gtdbmetadata_ch
-    file tblouts from tblout_ch
-    file domtblouts from domtblout_ch
+    file tblouts from tblout_ch.collect()
+    file domtblouts from domtblout_ch.collect()
     file genome_faas from all_genome_faas_classify_ch
 
   output:
