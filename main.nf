@@ -98,7 +98,7 @@ if( !params.gtdb_bac_metadata ) {
 // Create channels to start processing
 genome_faas          = Channel.value(file(params.inputfaas, checkIfExists: true))
 if ( params.inputgffs ) { 
-  genome_gffs        = Channel.fromPath(params.inputgffs, checkIfExists : true) 
+  genome_gffs        = Channel.fromPath("$params.inputgffs/*.gff.gz", checkIfExists : true) 
 }
 else {
   genome_gffs = Channel.empty()
@@ -144,24 +144,24 @@ process join_faas {
   """
 }
 
-process join_gffs {
-  publishDir "$results/genomes", mode: "copy"
-
-  input: 
-  file genome_dir from genome_gffs
-
-  output:
-  file 'all_genomes.gff.gz' into all_genome_gffs_ch
-
-  shell:
-  """
-  for f in \$(find ${genome_dir}/ -name '*.gff.gz'); do
-    a=\$(basename \$f | sed 's/\\..*//')
-    gunzip -c \$f | sed "/^>/s/\$/ [\$a]/" | grep '\t' >> all_genomes.gff
-  done
-  gzip all_genomes.gff
-  """
-}
+/// process join_gffs {
+///   publishDir "$results/genomes", mode: "copy"
+/// 
+///   input: 
+///   file genome_dir from genome_gffs
+/// 
+///   output:
+///   file 'all_genomes.gff.gz' into all_genome_gffs_ch
+/// 
+///   shell:
+///   """
+///   for f in \$(find ${genome_dir}/ -name '*.gff.gz'); do
+///     a=\$(basename \$f | sed 's/\\..*//')
+///     gunzip -c \$f | sed "/^>/s/\$/ [\$a]/" | grep '\t' >> all_genomes.gff
+///   done
+///   gzip all_genomes.gff
+///   """
+/// }
 
 /**
  * Run the hmmsearches.
@@ -176,12 +176,50 @@ process hmmsearch {
   
   output:
   file ("*.tblout") into tblout_ch
+  file ("*.tblout") into tblout_uniqacc_ch
   file ("*.domtblout") into domtblout_ch
   file ("*.hmmout.gz") into hmmout_ch
 
   shell:
   """
   hmmsearch --cpu ${task.cpus} --tblout \$(basename ${hmm} .hmm).tblout --domtblout \$(basename ${hmm} .hmm).domtblout ${hmm} $genome | gzip -c > \$(basename ${hmm} .hmm).hmmout.gz
+  """
+}
+
+/**
+ * Find unique accessions in the hmmsearch output.
+ */
+process unique_accessions {
+  publishDir "$results/hmmsearch", mode: "copy"
+
+  input:
+  file tblouts from tblout_uniqacc_ch.collect()
+
+  output:
+  file "unique.accnos" into uniq_accs
+
+  shell:
+  """
+  grep -hv '#' *.tblout | sed 's/ .*//' | sort -u > unique.accnos
+  """
+}
+
+/**
+ * Subset a gff file to only contain records surrounding an hmm hit.
+ */
+process subset_gff {
+  publishDir "$results/gffs", mode: "copy"
+
+  input:
+  file gff from genome_gffs
+  file accessions from uniq_accs
+
+  output:
+  file "*.out" into ss_gff
+
+  shell:
+  """
+  gunzip -c ${gff} | grep -f ${accessions} > \$(basename ${gff} .gff.gz).out
   """
 }
 
