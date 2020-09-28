@@ -168,7 +168,6 @@ process join_faas {
  */
 process hmmsearch {
   publishDir "$results/hmmsearch", mode: 'copy'
-  cpus params.max_cpus
 
   input:
   file genome  from all_genome_faas_hmmsearch_ch
