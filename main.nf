@@ -214,11 +214,11 @@ process subset_gff {
   file accessions from uniq_accs
 
   output:
-  file "*.out" into ss_gff
+  file "*.ss.tsv.gz" into ss_gff
 
   shell:
   """
-  gunzip -c ${gff} | grep -f ${accessions} > \$(basename ${gff} .gff.gz).out
+  subset_gff.R ${gff} ${accessions}
   """
 }
 
