@@ -10,6 +10,8 @@ suppressPackageStartupMessages(library(dtplyr))
 suppressPackageStartupMessages(library(dplyr, warn.conflicts = FALSE))
 suppressPackageStartupMessages(library(tidyr))
 suppressPackageStartupMessages(library(stringr))
+suppressPackageStartupMessages(library(magrittr))
+suppressPackageStartupMessages(library(readr))
 
 # Range to include. Entries starting in the interval from each target gene minus OVERLAP and
 # plus OVERLAP, will be included in the output.
@@ -45,11 +47,12 @@ accnos <- fread(opt$args[2], col.names = c('accno'))
 # Find matches
 matches <- lazy_dt(accnos) %>% inner_join(lazy_dt(gff), by = 'accno') %>% 
   as.data.table()
-matches$start <- matches$start - opt$options$overlap
-matches$end   <- matches$end   + opt$options$overlap
-matches <- matches[, .(strand, start, end)]
-setkey(matches, strand, start, end)
+matches <- matches[, .(strand, intvstart = start - opt$options$overlap, intvend = end + opt$options$overlap)]
+setkey(matches, strand, intvstart, intvend)
 
-foverlaps(gff, matches, type = 'within', by.x = c('strand', 'start', 'end'), by.y = c('strand', 'start', 'end'))[!is.na(start)] -> t
+foverlaps(gff, matches, type = 'within', by.x = c('strand', 'start', 'end'), by.y = c('strand', 'intvstart', 'intvend'))[!is.na(intvstart)] %>%
+  lazy_dt() %>% select(-intvstart, -intvend) %>%
+  as_tibble() %>%
+  write_tsv(sprintf("%s.ss.tsv.gz", opt$args[1] %>% str_remove(".gff.gz")))
 
 write("Done", stderr())
