@@ -222,6 +222,24 @@ process subset_gff {
   """
 }
 
+/**
+ * Collect the subset gff files into one.
+ */
+process collect_gff_subsets {
+  publishDir "$results/genomes"
+
+  input:
+  file gffs from ss_gff.collect()
+
+  output:
+  file "genomes.tsv.gz" into all_gffs
+
+  shell:
+  """
+  collect_gffs.R
+  """
+}
+
 process getMetadata {
   publishDir "$results/metadata", mode: 'copy'
 
