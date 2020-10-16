@@ -144,25 +144,6 @@ process join_faas {
   """
 }
 
-/// process join_gffs {
-///   publishDir "$results/genomes", mode: "copy"
-/// 
-///   input: 
-///   file genome_dir from genome_gffs
-/// 
-///   output:
-///   file 'all_genomes.gff.gz' into all_genome_gffs_ch
-/// 
-///   shell:
-///   """
-///   for f in \$(find ${genome_dir}/ -name '*.gff.gz'); do
-///     a=\$(basename \$f | sed 's/\\..*//')
-///     gunzip -c \$f | sed "/^>/s/\$/ [\$a]/" | grep '\t' >> all_genomes.gff
-///   done
-///   gzip all_genomes.gff
-///   """
-/// }
-
 /**
  * Run the hmmsearches.
  */
@@ -207,8 +188,6 @@ process unique_accessions {
  * Subset a gff file to only contain records surrounding an hmm hit.
  */
 process subset_gff {
-  publishDir "$results/gffs", mode: "copy"
-
   input:
   file gff from genome_gffs
   file accessions from uniq_accs
@@ -226,7 +205,7 @@ process subset_gff {
  * Collect the subset gff files into one.
  */
 process collect_gff_subsets {
-  publishDir "$results/genomes"
+  publishDir "$results/gffs", mode: "copy"
 
   input:
   file gffs from ss_gff.collect()
