@@ -1,6 +1,6 @@
 #!/usr/bin/env Rscript
 
-# subset_gff.R
+# collect_gffs.R
 #
 # Author: daniel.lundin@dbb.su.se
 
@@ -13,6 +13,8 @@ suppressPackageStartupMessages(library(data.table))
 #suppressPackageStartupMessages(library(magrittr))
 #suppressPackageStartupMessages(library(readr))
 
+write("collect_gffs.R starting", stderr())
+
 # opt <- list(options = list(overlap = 1e4), args = c('GCA_001244405.1_Eubacterium_massiliense_genomic.gff.gz', 'unique.accnos'))
 option_list = list(
 )
@@ -23,8 +25,6 @@ opt = parse_args(
   ), 
   positional_arguments = TRUE
 )
-
-write("Starting", stderr())
 
 data <- data.table(
   strand = character(), seqname = character(), source = character(), feature = character(),
