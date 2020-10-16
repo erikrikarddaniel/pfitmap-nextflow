@@ -42,7 +42,7 @@ params.featherprefix           = 'pfitmap-gtdb'
 params.max_cpus = 2
 params.max_time = "240.h"
 
-def helpMessage() {
+def help_message() {
   log.info """
 
   Usage:
@@ -73,7 +73,7 @@ def helpMessage() {
 
 // Show help message
 if (params.help) {
-  helpMessage()
+  help_message()
   exit 0
 }
 
@@ -219,7 +219,7 @@ process collect_gff_subsets {
   """
 }
 
-process getMetadata {
+process get_metadata {
   publishDir "$results/metadata", mode: 'copy'
 
   input:
@@ -236,7 +236,7 @@ process getMetadata {
   """
 }
 
-process pfClassify {
+process pf_classify {
   publishDir "$results/classification", mode: 'copy'
 
   input:
