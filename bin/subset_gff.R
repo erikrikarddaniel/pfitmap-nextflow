@@ -18,7 +18,7 @@ suppressPackageStartupMessages(library(readr))
 OVERLAP <- 1e5
 
 # Get arguments
-# opt <- list(options = list(overlap = 1e4), args = c('GCA_001244405.1_Eubacterium_massiliense_genomic.gff.gz', 'unique.accnos'))
+# opt <- list(options = list(overlap = 1e4), args = c('d', 'd/unique.accnos'))
 option_list = list(
   make_option(
     "--overlap", type = 'integer', default = OVERLAP, action = 'store', help = 'Size of overlap, default %default.'
@@ -32,27 +32,39 @@ opt = parse_args(
   positional_arguments = TRUE
 )
 
-write(sprintf("Subsetting %s with %s", opt$args[1], opt$args[2]), stderr())
+write(sprintf("Subsetting gffs in %s with %s", opt$args[1], opt$args[2]), stderr())
 
-gff <- fread(
-  cmd = sprintf("gunzip -c %s | grep -v '#' | grep '\t'", opt$args[1]),
-  col.names = c('seqname', 'source', 'feature', 'start', 'end', 'score', 'strand', 'frame', 'attribute')
-) %>%
-  lazy_dt() %>%
-  mutate(accno = str_extract(attribute, "ID=[^;]+") %>% str_remove("ID=")) %>%
-  as.data.table()
-setkey(gff, strand, start, end)
 accnos <- fread(opt$args[2], col.names = c('accno'))
+matches <- data.table(
+  strand = character(), seqname = character(), source = character(), feature = character(),
+  start = integer(), end = integer(), score = character(), frame = character(),
+  attribute = character(), accno = character()
+)
 
-# Find matches
-matches <- lazy_dt(accnos) %>% inner_join(lazy_dt(gff), by = 'accno') %>% 
-  as.data.table()
-matches <- matches[, .(strand, intvstart = start - opt$options$overlap, intvend = end + opt$options$overlap)]
-setkey(matches, strand, intvstart, intvend)
+for ( f in Sys.glob(sprintf("%s/*.gff.gz", opt$args[1])) ) {
+  print(sprintf("--> %s <--", f))
+  gff <- fread(
+    cmd = sprintf("gunzip -c %s | grep -v '#' | grep '\t'", f),
+    col.names = c('seqname', 'source', 'feature', 'start', 'end', 'score', 'strand', 'frame', 'attribute')
+  ) %>%
+    lazy_dt() %>%
+    mutate(accno = str_extract(attribute, "ID=[^;]+") %>% str_remove("ID=")) %>%
+    as.data.table()
+  setkey(gff, strand, start, end)
 
-foverlaps(gff, matches, type = 'within', by.x = c('strand', 'start', 'end'), by.y = c('strand', 'intvstart', 'intvend'))[!is.na(intvstart)] %>%
-  lazy_dt() %>% select(-intvstart, -intvend) %>%
-  as_tibble() %>%
-  write_tsv(sprintf("%s.ss.tsv.gz", opt$args[1] %>% str_remove(".gff.gz")))
+  # Find matches
+  m <- lazy_dt(accnos) %>% inner_join(lazy_dt(gff), by = 'accno') %>% as.data.table()
+  m <- m[, .(strand, intvstart = start - opt$options$overlap, intvend = end + opt$options$overlap)]
+
+  setkey(m, strand, intvstart, intvend)
+
+  m <- foverlaps(gff, m, type = 'within', by.x = c('strand', 'start', 'end'), by.y = c('strand', 'intvstart', 'intvend'))[!is.na(intvstart)] %>%
+    lazy_dt() %>% select(-intvstart, -intvend) %>%
+    as.data.table()
+
+  matches <- funion(matches, m)
+}
+
+fwrite(matches, "genomes.tsv.gz")
 
 write("Done", stderr())

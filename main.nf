@@ -98,7 +98,8 @@ if( !params.gtdb_bac_metadata ) {
 // Create channels to start processing
 genome_faas          = Channel.value(file(params.inputfaas, checkIfExists: true))
 if ( params.inputgffs ) { 
-  genome_gffs        = Channel.fromPath("$params.inputgffs/*.gff.gz", checkIfExists : true) 
+  //genome_gffs        = Channel.fromPath("$params.inputgffs/*.gff.gz", checkIfExists : true) 
+  genome_gffs          = Channel.value(file(params.inputgffs, checkIfExists: true))
 }
 else {
   genome_gffs = Channel.empty()
@@ -188,34 +189,18 @@ process unique_accessions {
  * Subset a gff file to only contain records surrounding an hmm hit.
  */
 process subset_gff {
-  input:
-  file gff from genome_gffs
-  file accessions from uniq_accs
-
-  output:
-  file "*.ss.tsv.gz" into ss_gff
-
-  shell:
-  """
-  subset_gff.R ${gff} ${accessions}
-  """
-}
-
-/**
- * Collect the subset gff files into one.
- */
-process collect_gff_subsets {
   publishDir "$results/gffs", mode: "copy"
 
   input:
-  file gffs from ss_gff.collect()
+  file gff_dir from genome_gffs
+  file accessions from uniq_accs
 
   output:
   file "genomes.tsv.gz" into all_gffs
 
   shell:
   """
-  collect_gffs.R
+  subset_gff.R ${gff_dir} ${accessions}
   """
 }
 
