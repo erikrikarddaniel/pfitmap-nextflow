@@ -159,6 +159,7 @@ process hmmsearch {
   file ("*.tblout") into tblout_ch
   file ("*.tblout") into tblout_uniqacc_ch
   file ("*.domtblout") into domtblout_ch
+  file ("*.pfamtblout") into pfamtblout_ch
   file ("*.hmmout.gz") into hmmout_ch
 
   shell:
