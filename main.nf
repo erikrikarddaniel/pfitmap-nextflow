@@ -163,7 +163,7 @@ process hmmsearch {
 
   shell:
   """
-  hmmsearch --cpu ${task.cpus} --tblout \$(basename ${hmm} .hmm).tblout --domtblout \$(basename ${hmm} .hmm).domtblout ${hmm} $genome | gzip -c > \$(basename ${hmm} .hmm).hmmout.gz
+  hmmsearch --cpu ${task.cpus} --tblout \$(basename ${hmm} .hmm).tblout --domtblout \$(basename ${hmm} .hmm).domtblout --pfamtblout \$(basename ${hmm} .hmm).pfamtblout ${hmm} $genome | gzip -c > \$(basename ${hmm} .hmm).hmmout.gz
   """
 }
 
