@@ -7,7 +7,7 @@ channels:
   - biocore
   - matricaria
 dependencies:
-  - hmmer=3.3
-  - pfitmap-db>=1.9.10
+  - hmmer=3.3.2
+  - pfitmap-db=1.9.15
   - r-stringi
   - r-r.utils
