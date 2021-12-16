@@ -34,10 +34,11 @@ params.inputgffs                = null
 params.hmms                     = null
 params.profiles_hierarchy       = null
 params.dbsource                 = 'GTDB:GTDB:latest'
-params.hmm_mincov               = 0.7
+params.domain_hmm_mincov        = 0.7
+params.protein_hmm_mincov       = 0.7
 params.gtdb_arc_metadata        = null
 params.gtdb_bac_metadata        = null
-params.featherprefix           = 'pfitmap-gtdb'
+params.featherprefix            = 'pfitmap-gtdb'
 
 params.max_cpus = 2
 params.max_time = "240.h"
@@ -49,7 +50,7 @@ def help_message() {
 
   The typical command for running the pipeline is as follows:
 
-  nextflow run main.nf --inputfaas path/to/genomes.faa.gzs [--inputgffs path/to/genomes.gff.gzs] --outputdir path/to/results --hmm_mincov value --dbsource GTDB:GTDB:release
+  nextflow run main.nf --inputfaas path/to/genomes.faa.gzs [--inputgffs path/to/genomes.gff.gzs] --outputdir path/to/results --domain_hmm_mincov value --protein_hmm_mincov value --dbsource GTDB:GTDB:release
 
   Mandatory arguments:
     --inputfaas path/to/genomes.faa.gzs  		Path of directory containing annotated genomes in the format faa.gz 
@@ -57,7 +58,8 @@ def help_message() {
     --gtdb_arc_metadata path/to/file 			Path of tsv file including the metadata for archaeal genomes
     --hmms path/to/hmm_directory                        Path of directory with HMM profile files 
     --profiles_hierarchy path/to/file			Path of tsv file including hmm profile names and information (See README.md file for more details)		
-    --hmm_mincov value					Set a value for the threshold of coverage hmm_profile/querry (default = 0.7)
+    --domain_hmm_mincov value				Set a value for the threshold of coverage domain hmm_profile/query (default = 0.7)
+    --protein_hmm_mincov value				Set a value for the threshold of coverage protein hmm_profile/query (default = 0.7)
     --dbsource db:db:release				Set the database source in the format db:db:release, where [db] is the name of the database and [release] mentions 
                                                           the release number/name (default = GTDB:GTDB:latest)
     --outputdir path/to/results				Path to the results directory
@@ -107,7 +109,8 @@ else {
 hmm_files          = Channel.fromPath("$params.hmms/*.hmm")
 profiles_hierarchy = Channel.fromPath(params.profiles_hierarchy, checkIfExists : true)
 dbsource           = Channel.value(params.dbsource)
-hmm_mincov         = Channel.value(params.hmm_mincov)
+domain_hmm_mincov  = Channel.value(params.domain_hmm_mincov)
+protein_hmm_mincov = Channel.value(params.protein_hmm_mincov)
 featherprefix      = Channel.value(params.featherprefix)
 gtdb_arc_metadata  = Channel.fromPath(params.gtdb_arc_metadata, checkIfExists : true)
 gtdb_bac_metadata  = Channel.fromPath(params.gtdb_bac_metadata, checkIfExists : true)
@@ -226,7 +229,8 @@ process pf_classify {
   publishDir "$results/classification", mode: 'copy'
 
   input:
-    val hmm_mincov from hmm_mincov
+    val domain_hmm_mincov from domain_hmm_mincov
+    val protein_hmm_mincov from protein_hmm_mincov
     val featherprefix from featherprefix
     val dbsource from dbsource
     file profiles_hierarchy from profiles_hierarchy
@@ -243,7 +247,16 @@ process pf_classify {
 
   shell:
   """
-  pf-classify.r --hmm_mincov=${hmm_mincov} --dbsource=${dbsource} --gtdbmetadata=gtdb_metadata.tsv --profilehierarchies=$profiles_hierarchy --singletable=gtdb.tsv.gz --seqfaa=${genome_faas} --featherprefix=${featherprefix}  --missing=missing_genomes.txt *.tblout *.domtblout > gtdb.pf-classify.warnings.txt 2>&1
+  pf-classify.r \\
+    --domain_hmm_mincov=${domain_hmm_mincov} \\
+    --protein_hmm_mincov=${protein_hmm_mincov} \\
+    --dbsource=${dbsource} \\
+    --gtdbmetadata=gtdb_metadata.tsv \\
+    --profilehierarchies=$profiles_hierarchy \\
+    --singletable=gtdb.tsv.gz \\
+    --seqfaa=${genome_faas} \\
+    --featherprefix=${featherprefix}  \\
+    --missing=missing_genomes.txt *.tblout *.domtblout > gtdb.pf-classify.warnings.txt 2>&1
   """
 }
 
